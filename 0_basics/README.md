@@ -11,8 +11,24 @@ Read through [the Cargo Book][Cargo Book] and become familiar with [Cargo] and i
 
 After completing these steps, you should be able to answer (and understand why) the following questions:
 - What memory model does [Rust] have? Is it single-threaded or multiple-threaded? Is it synchronous or asynchronous?
+Rust has a memory ownership model, a borrowing system, and lifetimes.
+There are both single-threaded simple programs and multi-threaded ones (in most cases).
+Rust is synchronous, but it has libraries that add asynchrony to it as well (e.g. Tokio).
+
 - What runtime does [Rust] have? Does it use a GC (garbage collector)?
+Rust has a minimal runtime environment. Unlike Java (JVM) or Go (its own runtime with scheduler), Rust compiles directly to native code.
+RUst doesn't have a garbage collector.
 - What does static typing mean? What is a benefit of using it?
+Static typing means that the type of each variable and expression is known at compile time, not runtime.
+
+Advantages:
+
+Safety: Most type-related errors (such as attempting to add a number to a string) are caught at compile time rather than failing in production.
+
+Performance: The compiler knows the exact size of the data and can generate more optimized machine code. There's no need to spend time checking types at runtime.
+
+Refactoring and Maintenance: Code is easier to understand and modify because types act as documentation. The IDE can provide precise hints (autocomplete).
+
 - What are generics and parametric polymorphism? Which problems do they solve?
 - What are traits? How are they used? How do they compare to interfaces? What are auto traits and blanket impls? What is a marker trait?
 - What are static and dynamic dispatch? Which should you use, and when?
