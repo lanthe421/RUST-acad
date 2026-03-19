@@ -140,12 +140,187 @@ pub makes items visible outside their module
 
 mod declares a module
 - What are move semantics? What are borrowing rules? What is the benefit of using them?
+
+Move semantics is a data transfer mechanism. When a value is assigned to another variable or passed to a function, the move lock is taken (moved), and the original variable can no longer be used.
+
+Borrowing rules:
+At any given time, there can be either one mutable borrow (&mut) or any number of immutable borrows (&).
+
+Borrowings must always be real (no owner outlives).
+
+Advantages:
+Compile-time data race guarantee
+
+Predictable memory deallocation without garbage collection
+
+Memory safety without runtime overhead
+
 - What is immutability? What is the benefit of using it?
+Immutability means that once a variable is created, its value cannot be changed. In Rust, variables are immutable by default (you must explicitly write mut for mutability).
+
+Advantages:
+No side effects – code is easier to understand and test.
+
+Multithreaded safety (no risk of data races).
+
+Possibility of compiler optimizations.
+
+Predictable program behavior.
+
 - What is cloning? What is copying? How do they compare?
+
+Copy:
+
+Simple bitwise copy of a value
+
+Only works for types whose size is known on the stack (simple types like i32, bool)
+
+Occurs automatically upon assignment
+
+The original variable remains valid
+
+Clone:
+
+Explicit deep copy (including heap data)
+
+Works for complex types (String, Vec)
+
+Requires an explicit call to .clone()
+
+Can be an expensive operation
+
+Differences:
+Copy is an automatic bitwise copy of data stored only on the stack. It occurs during assignment without losing the original variable. It works for simple types: numbers, bools, and chars.
+
+Clone is an explicit deep copy, including data on the heap. It requires a call to .clone() and can be expensive. It works for complex types: String, Vec, and any user-defined types with #[derive(Clone)].
+
+The main difference: Copy is automatic and cheap (stack only), while Clone is explicit and potentially expensive (stack + heap).
+
 - What is RAII? How is it implemented in [Rust]? What is the benefit of using it?
+
+RAII (Resource Acquisition Is Initialization) is a programming idiom where resource management is tied to object lifetime:
+
+Resources (memory, files, locks, sockets) are acquired in constructors
+
+Resources are released in destructors
+
+Release happens automatically when the object goes out of scope
+
+Rust implements RAII through:
+
+Ownership system — each resource has a single owner
+
+Drop trait — the destructor interface
+
+Scope-based cleanup — drop() is called automatically at the end of scope
+
+Benefits of RAII:
+Memory safety without GC — no manual memory management
+
+Exception safety — resources are released even if panics occur
+
+Leak prevention — impossible to forget releasing resources
+
+Deterministic cleanup — resources are released at predictable times
+
+Zero-cost abstraction — no runtime overhead compared to manual management
+
 - What is an iterator? What is a collection? How do they differ? How are they used?
+
+An iterator is a lazy view over a sequence of values. It produces items one at a time and does not store the data itself. Iterators implement the Iterator trait with a next() method.
+
+A collection is a data structure that stores multiple values in memory. Examples: Vec, HashMap, HashSet, LinkedList. Collections own their data and provide methods to add, remove, and access elements.
+
+Differences
+
+Aspect	            Collection	                        Iterator
+Purpose	            Stores data	                        Processes data
+Ownership	        Owns its elements	                Borrows or takes ownership
+Evaluation	        Eager (data exists now)	            Lazy (computes on demand)
+Reusability	        Can be iterated multiple times	    Usually consumed after one use
+Memory	            Holds all data at once	            Holds only current state
+
+How They're Used
+Collections are used when you need to:
+
+Store data for later access
+
+Insert/remove elements
+
+Access by index or key
+
+Iterators are used when you need to:
+
+Transform sequences (map, filter, fold)
+
+Process data without storing intermediate results
+
+Chain operations efficiently
+
 - What are macros? Which problems do they solve? What is the difference between declarative and procedural macros?
+
+Macros are metaprogramming tools that generate code at compile time. They write code that writes code.
+
+Problems Macros Solve:
+Code duplication — generate repetitive code patterns
+
+Boilerplate reduction — implement traits automatically (#[derive(Debug)])
+
+DSL creation — domain-specific languages (like println! with format strings)
+
+Compile-time computation — run code during compilation
+
+Syntax extension — add custom syntax to Rust
+
+Characteristics         Declarative             Procedural
+Complexity              Low (templates)         High (full Rust code)
+What they receive       AST (code structure)    Tokens
+What they do            Template substitution   Programmatic transformation
+Where they live         In the same crate       In a separate crate
+Example                 vec![1, 2, 3]           #[derive(Serialize)]
+
 - How is code tested in [Rust]? Where should you put tests and why?
+
+How code is tested:
+Rust has built-in testing support with three main types of tests:
+
+Unit Tests — test individual functions and modules in isolation
+
+Integration Tests — test public APIs by calling them like an external user
+
+Doc Tests — examples in documentation that are verified to compile and run
+
+
+Unit Tests — in the same file as the code
+Why here?
+
+Can test private functions (they're in the same module)
+
+Tests stay close to the code they test
+
+Easy to maintain and update
+
+
+Integration Tests — in tests/ directory
+Why here?
+
+Tests the public API exactly as users would use it
+
+Each file in tests/ compiles as a separate crate
+
+Cannot access private implementation details
+
+
+Doc Tests — in documentation comments
+Why here?
+
+Ensures documentation examples are correct and compile
+
+Documentation and tests stay synchronized
+
+Serves as both documentation and verification
+
+
 - Why does [Rust] have `&str` and `String` types? How do they differ? When should you use them?
 - What are lifetimes? Which problems do they solve? Which benefits do they give?
 - Is [Rust] an OOP language? Is it possible to use SOLID/GRASP? Does it have inheritance?
