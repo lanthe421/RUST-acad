@@ -322,8 +322,97 @@ Serves as both documentation and verification
 
 
 - Why does [Rust] have `&str` and `String` types? How do they differ? When should you use them?
+
+Rust distinguishes between:
+Stack-allocated string slices (&str) - views into existing string data
+
+Heap-allocated owned strings (String) - mutable, growable string buffers
+
+This separation reflects Rust's core principles: explicit memory management, zero-cost abstractions, and clear ownership semantics.
+
+Aspect	                &str	                                String
+
+Memory                  Stack (pointer) + data somewhere        Stack (pointer/capacity/length)
+location                (heap, binary, stack)                   + heap data
+
+Ownership	            Borrowed reference	                    Owned data
+
+Mutability	            Immutable	                            Mutable
+
+Size	                Fixed-size reference (2 words:          Dynamically growable
+                        pointer + length)	                    
+
+Lifetime	            Borrowed, has explicit lifetime	        Owned, lives as long as variable does
+
+Use &str when:
+Accepting parameters - most functions should take &str for flexibility
+
+Working with string literals
+
+You only need to read the string data
+
+Passing temporary views into existing strings
+
+
+Use String when:
+You need ownership (store in structs, return from functions)
+
+Building or modifying strings dynamically
+
+Passing strings between threads
+
+You control the string's lifecycle
+
+
 - What are lifetimes? Which problems do they solve? Which benefits do they give?
+
+Lifetimes are Rust's way of tracking how long references are valid. They're a compile-time construct that ensures references never outlive the data they point to, preventing dangling references without runtime overhead.
+
+They solve the problem of dangling references—a situation where code processes data that has already been freed from memory. In non-crash-collected environments, this leads to undefined behavior and vulnerabilities. Rust detects such cases at compile time.
+
+Benefits:
+Garbage-free safety—the compiler guarantees the absence of dangling references, but without the need for runtime checks or automatic memory management.
+
+Zero-cost abstractions—lifetimes exist only at compile time and create no runtime overhead.
+
+Explicit dependency management – ​​APIs become self-documenting, clearly indicating the lifetime of data passed to functions or structures.
+
+Prevention of entire classes of errors – eliminates use-after-free statements, double-frees, and iterators that become invalid when the collection is modified.
+
+Composition – the ability to safely combine abstractions, knowing that correctness checks are performed at every level.
+
 - Is [Rust] an OOP language? Is it possible to use SOLID/GRASP? Does it have inheritance?
+
+Rust is not a classic object-oriented language like Smalltalk or Java, but it does support some OOP elements. It is a multi-paradigm language that combines functional, systems, and structured programming with explicit OOP concepts.
+
+Support for SOLID Principles:
+The SOLID principles are implementable in Rust, but often through different mechanisms than in classical OOP languages:
+
+**S (Single Responsibility)** — fully supported through the module system, structs, and traits.
+
+**O (Open/Closed)** — implemented through traits and composition, allowing behavior to be extended without modifying existing code.
+
+**L (Liskov Substitution)** — ensured through traits and parametric polymorphism, where a type implementing a trait can substitute for the trait type.
+
+**I (Interface Segregation)** — implemented through small, focused traits that can be combined.
+
+**D (Dependency Inversion)** — achieved through traits, allowing code to depend on abstractions rather than concrete implementations.
+
+GRASP patterns are also applicable, but are often expressed through the ownership system, traits, and composition instead of classical inheritance.
+
+
+Inheritance:
+Rust doesn't have classical inheritance. Instead, it uses:
+
+There is no data inheritance—a struct cannot inherit the fields of another struct. Composition is the primary data reuse mechanism.
+
+Polymorphism through traits—instead of method inheritance, trait implementations are used, providing polymorphism without hierarchies.
+
+No type hierarchy – there is no "is-a" relationship between types. Instead, the "implements behavior" relationship is used through traits.
+
+Aggregation instead of inheritance – composition, delegation, and traits with default implementations are used to promote code reuse.
+
+This approach avoids the problems of classical inheritance: fragile hierarchy, problems with diamond inheritance, and violation of encapsulation.
 
 _Additional_ articles, which may help to understand the above topic better:
 - [George He: Thinking in Rust: Ownership, Access, and Memory Safety][19]
