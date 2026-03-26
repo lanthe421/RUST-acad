@@ -154,10 +154,9 @@ There is a handy [momo] crate, which generates this boilerplate automatically in
 
 
 
-
 ## Task
 
-Given the following `Storage` abstraction and `User` entity:
+Given the following `Stor
 ```rust
 trait Storage<K, V> {
     fn set(&mut self, key: K, val: V);
