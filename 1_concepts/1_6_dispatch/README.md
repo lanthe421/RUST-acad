@@ -154,10 +154,9 @@ There is a handy [momo] crate, which generates this boilerplate automatically in
 
 
 
-
 ## Task
 
-Given the following `Storage` abstraction and `User` entity:
+Given the following `Stor
 ```rust
 trait Storage<K, V> {
     fn set(&mut self, key: K, val: V);
@@ -181,11 +180,52 @@ Implement `UserRepository` type with injectable `Storage` implementation, which 
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is dispatch? When a function call represents a dispatch and when not?
+
+Dispatching is a mechanism for determining which specific implementation of a function or method should be executed when called. A process associates a function name with specific executable code.
+
+A function call is dispatched if and only if there are multiple possible implementations for the call, and the compiler or runtime must choose one of them.
+
 - How does static dispatch work?
+
+Static dispatch is a mechanism in which all decisions about which code will be executed are made at compile time. No decisions are made during program execution.
+
+Static dispatch is implemented through monomorphization—the process of generating a separate copy of the generic code for each specific type with which that code is used.
+
 - How does dynamic dispatch work? Why is it required? Which limitations does it have in [Rust]? Why does it have them?
+- Dynamic dispatch is a mechanism in which decisions about which code will be executed are made at runtime. It's required when we need to store values of different types that implement the same trait in the same collection, or when we want to achieve type erasure.
+
+In Rust, dynamic dispatch is implemented using trait objects (`dyn Trait`) and virtual function tables (vtables). The compiler generates a vtable for each trait object, which contains pointers to the actual implementations of the trait methods for the concrete type at runtime.
+
+Limitations of dynamic dispatch in Rust include:
+1. Performance overhead due to the vtable lookup at runtime
+2. The requirement for heap allocation (trait objects are always behind a pointer)
+3. Object safety restrictions - not all traits can be used as trait objects
+4. Runtime type information overhead
+
+These limitations exist because dynamic dispatch trades compile-time safety and performance for runtime flexibility and type erasure.
+
+
 - When dynamic dispatch can be replaced with static dispatch? When not? What are the trade-offs?
+
+Dynamic dispatch can be replaced with static dispatch when:
+1. The set of possible types is known at compile time (closed type set)
+2. The number of possible types is small enough to generate efficient code for all of them
+3. Performance is critical and the overhead of dynamic dispatch is unacceptable
+
+When dynamic dispatch cannot be replaced with static dispatch:
+1. When the set of possible types is open or unknown at compile time
+2. When dealing with a large number of types that would cause significant code bloat
+
+Trade-offs:
+1. Code size vs performance: Static dispatch can generate larger binaries due to code duplication, while dynamic dispatch has smaller code size but slower execution
+
 - How can we reduce the size of compiler-generated code when using static dispatch?
 
+1. Use the `#[inline]` attribute to encourage inlining of generic functions
+2. Factor out complex generic logic into non-generic helper functions
+3. Use the `momo` crate to automate the generation of non-generic helpers
+4. Avoid unnecessary generic parameters in function signatures
+5. Consider using `const generics` instead of `generic parameters` where applicable
 
 
 

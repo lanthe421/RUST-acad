@@ -90,13 +90,144 @@ To better understand [`Pin`]'s purpose, design, limitations, and use cases, read
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What does "boxing" mean in [Rust]? How is it useful? When and why is it required?
+
+Boxing (Box<T>) allocates data on the heap and returns a pointer. Box owns the data.
+
+How is it useful:
+Enables recursive types (e.g., linked lists)
+
+Provides heap allocation for large data
+
+Allows moving unsized types (dyn Trait, [T])
+
+Enables transferring ownership without copying
+
+When required:
+When type size is unknown at compile time
+
+When you need stable address (though Pin is better for this)
+
 - What is [`Pin`] and why is it required? What guarantees does it provide? How does it fulfill them?
+
+Pin is a wrapper type that prevents the value inside from being moved in memory.
+
+Why required: To safely work with self-referential structs and async generators—types where moving them in memory would invalidate internal pointers.
+
+Pin provides two key guarantees:
+For T: Unpin: No restrictions - the value can still be moved
+
+For T: !Unpin: The value cannot be moved after being pinned
+
+The guarantee is: once a value is pinned, it will stay at the same memory location until it's dropped
+
+
+How does it fulfill them?
+1.Via the Unpin marker trait:
+Unpin is an autotrait that is automatically implemented for most types.
+
+Types that should not move after being pinned explicitly implement !Unpin.
+
+The compiler uses this information during type checking to allow or disallow certain operations.
+
+
+2.Due to limitations in the Pin API:
+The get_mut() method is only available for types implementing Unpin, allowing a mutable reference to be safely obtained only when it is safe to move.
+
+The get_unchecked_mut() method requires unsafe for !Unpin types, shifting the responsibility for ensuring non-movability to the programmer.
+
+Deref returns an immutable reference that never allows the value to be moved.
+
+DerefMut is conditionally available only through Unpin.
+
+Also through creation control and through pointer wrapping.
+
 - How does [`Unpin`] affect the [`Pin`]? What does it mean?
+
+Unpin is a marker that says, "This type is safe to move even after being pinned."
+
+Pin is a wrapper around a pointer that promises not to move the value.
+
+Without Unpin, there is no easy way to get &mut T out of Pin - the compiler forces the type to be handled through safe methods, preventing it from being moved.
+
 - Is it allowed to move pinned data after the [`Pin`] dies? Why?
+Yes, it is allowed. Once the Pin wrapper dies (is dropped), the pinned data can be moved again
+
+Why?
+Pin is just a compile-time contract, not a runtime invariant. It only guarantees immovability while the Pin exists.
+
+Pin is a guard: It prevents moves only while it holds the pointer
+
+Dropping is safe: When Pin drops, it either:
+
+Drops the value (if it owns it, like Pin<Box<T>>)
+
+Or releases the reference (if it's Pin<&mut T>)
+
+After destruction: No restrictions remain — the value is either gone or back to normal Rust ownership rules
+
 - What is structural pinning? When should it be used and why?
+Structural pinning is a design pattern where a type propagates the "pinned" state to its fields. When the container is pinned, its structurally-pinned fields are also considered pinned.
+
+In practice, this means:
+The container implements Deref/DerefMut in a way that respects pinning
+
+Methods that take Pin<&mut Self> can safely access pinned fields
+
+Use When:
+Your type contains self-referential fields
+
+You're building abstractions over pinned data
+
+You need to expose pinned access to fields while keeping the whole container pinned
+
+Why should it be used
+1. Safety Without Complexity
+Without structural pinning, you'd need unsafe to access fields of pinned containers
+2.Building Safe Abstractions
+Structural pinning enables composable safe APIs
+3.Projections Within Pinned Data
+It allows creating projections — pinned references to fields
+
+
 - What is [`Pin`] projection? Why does it exist? How is it used?
+Pin projection is the process of moving from a Pin<&mut Container> to a Pin<&mut Field> — getting a pinned reference to a field of a pinned container.
+It's the mechanism that enables structural pinning in practice.
 
+Why does it exists:
+When you have a pinned container, you can't just take a normal &mut Field — that would allow moving the field out of the container, breaking pinning guarantees
 
+Pin projection provides a safe way to access fields while preserving pinning guarantees
+
+How is it used:
+```rust
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
+struct MyWrapper<F> {
+    inner: F,
+    ready: bool,
+}
+
+impl<F: Future> Future for MyWrapper<F> {
+    type Output = F::Output;
+    
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        // Project to inner future
+        let inner = unsafe { self.as_mut().map_unchecked_mut(|w| &mut w.inner) };
+        
+        // Poll the inner future
+        match inner.poll(cx) {
+            Poll::Ready(val) => {
+                // Mark as ready and return
+                unsafe { self.get_unchecked_mut().ready = true };
+                Poll::Ready(val)
+            }
+            Poll::Pending => Poll::Pending
+        }
+    }
+}
+```
 
 
 [`Box`]: https://doc.rust-lang.org/std/boxed/struct.Box.html
