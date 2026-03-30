@@ -6,6 +6,7 @@ use std::{
     task::{Context, Poll},
     time::Instant,
 };
+use pin_project::pin_project;
 
 trait SayHi: fmt::Debug {
     fn say_hi(self: Pin<&Self>) {
@@ -29,32 +30,32 @@ impl<T: Unpin> MutMeSomehow for T {
     }
 }
 
+
+#[pin_project]
 struct MeasurableFuture<Fut> {
+    #[pin]
     inner_future: Fut,
     started_at: Option<Instant>,
 }
+
+
 
 impl<Fut: Future> Future for MeasurableFuture<Fut> {
     type Output = Fut::Output;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = unsafe { self.get_unchecked_mut() };
-
+        let this = self.project();
         if this.started_at.is_none() {
-            this.started_at = Some(Instant::now());
+            *this.started_at = Some(Instant::now());
         }
-
-        // SAFETY: projecting Pin to the inner_future field (structural pin).
-        let inner = unsafe { Pin::new_unchecked(&mut this.inner_future) };
-
-        match inner.poll(cx) {
+        match this.inner_future.poll(cx) { 
             Poll::Ready(output) => {
                 let elapsed = this.started_at.unwrap().elapsed();
                 println!("Future completed in {} ns", elapsed.as_nanos());
                 Poll::Ready(output)
             }
             Poll::Pending => Poll::Pending,
-        }
+         }
     }
 }
 
