@@ -1,3 +1,5 @@
+use std::mem;
+
 fn main() {
     let mut s = Solver {
         expected: Trinity { a: 1, b: 2, c: 3 },
@@ -9,7 +11,7 @@ fn main() {
         ],
     };
     s.resolve();
-    println!("{:?}", s)
+    println!("{:?}", s);
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -38,16 +40,19 @@ struct Solver<T> {
 
 impl<T: Clone + PartialEq> Solver<T> {
     fn resolve(&mut self) {
-        let mut unsolved = Vec::with_capacity(self.unsolved.len());
-        'l: for t in self.unsolved.iter_mut() {
-            for _ in 0..3 {
-                if *t == self.expected {
-                    continue 'l;
+        let unsolved = mem::take(&mut self.unsolved); // забираем вектор, оставляем пустой
+        self.unsolved = unsolved
+            .into_iter()
+            .filter_map(|mut t| {
+                for _ in 0..3 {
+                    if t == self.expected {
+                        return None; // решён — выбрасываем
+                    }
+                    t.rotate();
                 }
-                t.rotate();
-            }
-            unsolved.push(t.clone())
-        }
-        self.unsolved = unsolved;
+                Some(t) // не решён — оставляем
+            })
+            .collect();
     }
+
 }
