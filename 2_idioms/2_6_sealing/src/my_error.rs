@@ -67,12 +67,21 @@ pub trait MyError: Debug + Display {
     ///
     /// __This is memory-unsafe to override in user code.__
     #[doc(hidden)]
-    fn type_id(&self) -> TypeId
+    fn type_id(&self, _: private::Token) -> TypeId
     where
         Self: 'static,
     {
         TypeId::of::<Self>()
     }
+}
+
+mod private {
+    /// An opaque token. `pub` inside a private module: visible within
+    /// this crate, but the name `private::Token` cannot be written by
+    /// downstream code. Therefore `type_id` cannot be called or
+    /// overridden outside this crate — the caller would need to
+    /// construct a `Token`, which is impossible from outside.
+    pub struct Token;
 }
 
 impl<'a, T: MyError + ?Sized> MyError for &'a T {
