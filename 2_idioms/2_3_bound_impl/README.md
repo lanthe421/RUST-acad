@@ -112,9 +112,51 @@ Refactor the code contained in [this step's crate](src/main.rs) to reduce trait 
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - Which problems do trait bounds impose in [Rust] when are placed on a type definition?
+
+Trait bounds on a type definition (e.g., ``struct S<T: Trait>``) create the following problems:
+1.Forced constraint propagation—any code using this type must also satisfy the same bounds, even if they are not needed for a specific operation.
+
+2.Loss of flexibility—the type cannot store values ​​that do not implement the specified trait, even if these methods are never called.
+
+3.Signature bloat—bounds must be repeated in all impl blocks and functions working with this type, creating a "viral" effect.
+
+4.Difficulty in composition—creating types with multiple parameters, where different methods require different combinations of traits, becomes more difficult.
+
+5.Compilation performance issues—each type parameter with a bound increases the number of generated monomorphic copies.
+
+The correct approach is to not specify bounds in the type definition, but to add them only at the impl block and function level.
+
 - Why placing trait bounds on `impl` blocks is better?
+
+Trait bounds on `impl` blocks are better because they:
+1. Reduce trait bounds pollution—bounds are only specified where needed, not everywhere.
+2. Lower coupling—types are less tied to specific traits, increasing modularity.
+3. Improve ergonomics—generic code becomes cleaner and easier to use.
+4. Allow more flexible usage—types can be used with a wider range of parameters.
+5. Prevent unnecessary constraints—code doesn't force consumers to satisfy bounds they don't actually need.
+
 - When cannot we do that and should use trait bounds on a type definition? When is it preferred?
+
+When we __must__ place trait bounds on a type definition:
+1. When the type's internal structure or behavior fundamentally depends on the trait's associated types or methods.
+2. When the type needs to store values that must implement the trait (e.g., `Vec<T: Clone>`).
+3. When the trait is required for the type's core functionality and not just for specific methods.
+4. When the type is part of an API contract that requires specific behavior from its type parameters.
+
+It's preferred when the trait is essential to the type's design and not just a convenience for method implementations.
+
 - What are the problems with `std` derive macros regarding type parameters? How could they be solved?
+
+Derive macros can impose unnecessary trait bounds on type parameters, leading to:
+1. Trait bounds pollution—bounds are applied even when not needed.
+2. Reduced flexibility—prevents usage with types that don't implement the derived traits.
+3. Compilation errors—when trying to use the derived type with non-conforming types.
+
+These problems can be solved by:
+1. Providing manual implementations instead of relying on derives.
+2. Using conditional compilation or feature flags to control which derives are used.
+3. Creating custom derive macros that are more selective about which bounds they apply.
+4. Using marker traits or phantom types to avoid imposing unwanted bounds.
 
 
 
