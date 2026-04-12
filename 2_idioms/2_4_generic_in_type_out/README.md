@@ -98,7 +98,63 @@ Refactor the code contained in [this step's crate](src/main.rs) to make it more 
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - Why abstracting over input type is good? Which problems does it have and how can they be overcome?
+
+Abstracting from the input type (using generics) is good because:
+Code reuse – a single function works with different types.
+
+Type safety – type errors are caught at compile time.
+
+Zero abstraction cost – no runtime overhead.
+
+Readability and contracts – the code explicitly specifies which operations are required from the type.
+
+Problems of abstracting from the input type:
+Code bloat – a separate copy of the function is generated for each type used, increasing the binary size and compile time.
+
+Complex error messages – especially when trait bounds are violated.
+
+Boundary propagation – if a type is stored in a structure, its bounds "infect" all users of the structure.
+
+Loss of access to specific optimizations – generic code cannot use type-specific fast paths (without specialization).
+
+Debugging difficulties - it is more difficult to follow the flow of execution when types are generic.
+
+How to overcome these problems:
+Trait objects (dyn Trait) — instead of monomorphism when code size is important and performance is not critical.
+
+Neat where-clauses — place bounds only where they are really needed, avoiding them in struct definitions.
+
+Decomposition into small, specific functions — internally, generalized logic delegates to specific implementations.
+
+Profiling and cargo bloat — identify bottlenecks as code grows.
+
+Use specialization (unstable) — provide different implementations for different types when necessary for performance.
+
 - When returning a concrete type is good? When not? What are the trade-offs?
+
+Returning a concrete type is good when:
+- You want to provide maximum information about the return type.
+- You want to avoid potential code bloat from `impl Trait`.
+- You want to allow the caller to use type-specific methods.
+- You want to make the API easier to understand and use.
+
+Returning a concrete type is not good when:
+- You want to hide implementation details.
+- You want to provide a uniform interface for different types.
+- You want to future-proof your API.
+- You want to allow for different implementations without breaking changes.
+
+Trade-offs:
+Pros:
+- More information is provided to the caller.
+- No code bloat from `impl Trait`.
+- Allows for type-specific optimizations.
+- Easier to understand and use.
+
+Cons:
+- Less flexibility in implementation.
+- Can lead to API breakage if the return type changes.
+- May expose internal implementation details.
 
 
 
