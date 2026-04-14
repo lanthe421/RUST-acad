@@ -137,9 +137,23 @@ For the implementation of a small [guessing game][51] in [this step's crate](src
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is TDD style? What is BDD style? Where is the essential accent of BDD?
+
+TDD (Test-Driven Development) means writing a test before the implementation, then writing the minimal code to make it pass, then refactoring. The cycle is red → green → refactor.
+
+BDD (Behavior-Driven Development) is an extension of TDD where the focus shifts to describing system behavior from the user's perspective. Tests represent a specification — they say what the system should do, not how it does it. Test names read as sentences: returns_correct_when_guess_matches_secret instead of test_cmp. The essential accent of BDD is that tests serve as living documentation of behavior.
+
 - What is mocking? When is it useful?
+
+A mock is a substitute object that simulates the behavior of a real dependency (database, HTTP service, file system). It's useful when the real dependency is slow, unavailable in the test environment, or has side effects that must not happen during tests. For example, instead of making a real HTTP request you substitute a mock that returns a predefined response.
+
 - What is property testing? How does it achieve its goals?
+
+Property testing means describing a property that must hold for all valid inputs, rather than writing specific examples. The library (proptest, quickcheck) automatically generates hundreds of random inputs and checks the property on each one. When a failure is found, it automatically shrinks the input to the minimal reproducing case. The goal is to discover edge cases you didn't think of.
+
 - What is fuzzing? How does it differ from property testing?
+
+Fuzzing means feeding random, malformed, or unexpected data into a program to find crashes, memory leaks, or hangs. The difference from property testing: fuzzing operates at the byte level without knowledge of data structure — it looks for crashes and undefined behavior, not logical invariant violations. Property testing works with typed values and checks specific correctness properties. Fuzzing is best for security and stability; property testing is best for logical correctness.
+
 
 
 
