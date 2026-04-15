@@ -233,3 +233,108 @@ mod game_flow_spec {
         }
     }
 }
+
+// ============================================================
+// MOCKING EXAMPLE
+// ============================================================
+//
+// The game needs a random number source. Instead of hardcoding
+// `rand::random()` everywhere, we define a trait and mock it.
+// This lets tests control exactly what "random" number is returned.
+
+use mockall::automock;
+
+#[automock]
+pub trait NumberSource {
+    fn next_number(&self) -> u32;
+}
+
+/// Game logic that depends on an abstract number source.
+pub fn run_single_round(source: &dyn NumberSource, guess: u32) -> GuessResult {
+    let secret = source.next_number();
+    check_guess(guess, secret)
+}
+
+#[cfg(test)]
+mod mocking_spec {
+    use super::*;
+    use mockall::predicate::*;
+
+    #[test]
+    fn mock_returns_controlled_secret() {
+        let mut mock = MockNumberSource::new();
+        // Tell the mock: when next_number() is called once, return 42
+        mock.expect_next_number()
+            .times(1)
+            .returning(|| 42);
+
+        assert_eq!(run_single_round(&mock, 42), GuessResult::Correct);
+    }
+
+    #[test]
+    fn mock_detects_too_small_guess() {
+        let mut mock = MockNumberSource::new();
+        mock.expect_next_number().returning(|| 100);
+
+        assert_eq!(run_single_round(&mock, 50), GuessResult::TooSmall);
+    }
+
+    #[test]
+    fn mock_detects_too_big_guess() {
+        let mut mock = MockNumberSource::new();
+        mock.expect_next_number().returning(|| 10);
+
+        assert_eq!(run_single_round(&mock, 99), GuessResult::TooBig);
+    }
+}
+
+// ============================================================
+// PROPERTY TESTING EXAMPLE
+// ============================================================
+//
+// Instead of picking specific numbers, proptest generates hundreds
+// of random (a, b) pairs and checks that our properties always hold.
+
+#[cfg(test)]
+mod property_spec {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        // Property: if guess < secret, result is always TooSmall
+        #[test]
+        fn guess_less_than_secret_is_always_too_small(
+            (guess, secret) in (0u32..u32::MAX).prop_flat_map(|g| (Just(g), (g + 1)..=u32::MAX))
+        ) {
+            prop_assert_eq!(check_guess(guess, secret), GuessResult::TooSmall);
+        }
+
+        // Property: if guess > secret, result is always TooBig
+        #[test]
+        fn guess_greater_than_secret_is_always_too_big(
+            (secret, guess) in (0u32..u32::MAX).prop_flat_map(|s| (Just(s), (s + 1)..=u32::MAX))
+        ) {
+            prop_assert_eq!(check_guess(guess, secret), GuessResult::TooBig);
+        }
+
+        // Property: any number compared to itself is always Correct
+        #[test]
+        fn any_number_equals_itself(n in 0u32..=u32::MAX) {
+            prop_assert_eq!(check_guess(n, n), GuessResult::Correct);
+        }
+
+        // Property: parse_secret(s) == parse_guess(s) for all strings
+        // Both functions must behave identically since they do the same thing
+        #[test]
+        fn parse_secret_and_parse_guess_are_consistent(s in ".*") {
+            prop_assert_eq!(parse_secret(&s), parse_guess(&s));
+        }
+
+        // Property: valid u32 values always parse successfully
+        #[test]
+        fn valid_u32_always_parses(n in 0u32..=u32::MAX) {
+            let s = n.to_string();
+            prop_assert_eq!(parse_secret(&s), Some(n));
+        }
+    }
+}
