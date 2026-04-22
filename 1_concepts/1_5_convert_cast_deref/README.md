@@ -192,11 +192,87 @@ Provide conversion and `Deref` implementations for these types on your choice, t
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - How value-to-value conversion is represented in [Rust]? What is relation between fallible and infallible one?
+
+Rust implements conversions represented through the trait system, which are either error-free or possibly error-prone.
+
+Core traits:
+Error-free conversions:
+From<T> and Into<T> — always succeed and do not return a result. If "From" is implemented, "To" is automatically available. These are used for conversions that are guaranteed to work, such as i32 to i64 or &str to String.
+
+Possibly error-prone conversions:
+TryFrom<T> and TryInto<T> — return Result<T, E> because the conversion may fail. A classic example is parsing strings into numbers: "42".parse() or i32::try_from("abc") will return an error.
+
+The connection between them:
+The main connection is that error-free conversions are a special case of error-free conversions, where an error never occurs. You can implement TryFrom with the Infallible error type (which cannot be created), meaning the conversion always succeeds.
+
+However, From and TryFrom are independent traits. The presence of From does not automatically result in TryFrom, and vice versa. But if you have From, you can easily implement TryFrom as always succeeding.
+
 - How reference-to-reference conversion is represented in [Rust]? How its traits differ? When and which one should be used?
+
+The conversion of references in Rust is represented by two main traits: AsRef<T> and Borrow<T>, as well as their mutable versions AsMut<T> and BorrowMut<T>.
+
+AsRef is intended for cheap, universal conversions between references. It imposes no additional semantic requirements — you're simply stating that a type can be represented as a reference to another type. For example, String implements AsRef<str> because a string can be borrowed as a slice. The same goes for PathBuf and Path, Vec<T> and [T]. AsRef is used to create flexible APIs when a function needs to accept many types that can be converted into the required reference.
+
+Borrow is technically similar but has an important semantic difference: it requires that the conversion preserves the behavior of hashing, equality comparison, and ordering. The original type and the borrowed type must be indistinguishable with respect to these traits. This is critically important for collections like HashMap and HashSet, which use hashing and comparison for key lookup.
+
+The main difference is that AsRef can be implemented for any types where a meaningful cheap conversion to a reference exists. For instance, String implements AsRef<[u8]> for accessing its bytes, but it does not implement Borrow<[u8]> because hashing a string and hashing its byte representation yield different results.
+
+Borrow, on the other hand, is typically implemented only for cases where the type is a "smart pointer" or a wrapper that is completely transparent. Classic examples: String → str, Box<T> → T, Rc<T> → T. These type pairs behave identically with respect to hashing and comparison.
+
+When to use AsRef: in functions that need flexibility in argument types. For example, a function working with paths should accept impl AsRef<Path> so that the caller can pass &str, String, or PathBuf. This is standard practice in Rust for creating convenient APIs without sacrificing performance.
+
+When to use Borrow: when working with collections, especially when you need to look up values by keys that don't match the key type in the collection. If you have a HashMap<String, Value>, you can look up by &str precisely because String implements Borrow<str>. You should also implement Borrow for your own types if they are transparent wrappers and will be used as keys in hash tables.
+
+AsMut and BorrowMut are the mutable versions of these traits, following the same principles but returning mutable references.
+
+
 - How can inner-to-outer reference conversion be achieved in [Rust]? Which prerequisites does it have?
+
+How can inner-to-outer reference conversion be achieved in [Rust]?
+By using self-referential structures with stable addresses, typically implemented via:
+Pinning (Pin<Box<T>> or Pin<&mut T>) to prevent moving.
+
+Raw pointers (*const/*mut) to store the inner-to-outer reference.
+
+Safe wrappers like ouroboros, self_cell, or rental crates.
+
+Which prerequisites does it have?
+The value must be pinned (immovable after initialization).
+
+The inner reference must be valid for the lifetime of the outer struct.
+
+Construction must ensure the reference is initialized only after the outer struct’s address is stable.
+
+Typically requires unsafe code or a safe abstraction crate to uphold Rust’s aliasing and lifetime rules.
+
 - What is dereferencing in [Rust]? How it can be abused? Why it shouldn't be abused?
+
+Dereferencing in Rust is the process of accessing the value that a reference points to using the * operator. It allows you to work with the actual data rather than a reference to it.
+
+How it can be abused?
+By implementing Deref for non-pointer types or types that aren't meant to be transparent wrappers, leading to confusing APIs and unexpected behavior.
+Using Deref to automatically convert types in ways that aren't obvious to users of the API.
+Creating complex, hard-to-debug self-referential structures that violate Rust's ownership guarantees.
+Overusing Deref in newtype patterns to hide the underlying type too aggressively, making code less explicit and harder to reason about.
+
+Why it shouldn't be abused?
+Because it can make code less clear and introduce subtle bugs.
+Because it's meant to be used primarily for smart pointers to provide transparent access to the contained value.
+Because improper use can break Rust's ownership model and make code harder to maintain.
+
 - Why using [`as`] keyword is not a good practice in [Rust]? Why do we still use it?
 
+Why using [`as`] keyword is not a good practice in [Rust]?
+Because it's limited to a small, fixed set of primitive type conversions and lacks the expressiveness and safety of dedicated conversion traits like From, Into, TryFrom, and TryInto.
+
+Why do we still use it?
+We still use it for:
+- Explicit casting between primitive types (e.g., f64 to i32).
+- Converting between integer types of different sizes (e.g., u32 to u16).
+- Casting between raw pointers and integers.
+- Situations where the compiler cannot infer the target type.
+- Interoperability with C code or FFI.
+- When the conversion is truly simple and safe, and no other trait applies.
 
 
 
