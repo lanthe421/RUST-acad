@@ -1,11 +1,7 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-struct User {
-    id: u64,
-    email: Cow<'static, str>,
-    activated: bool,
-}
+use step_1_6::{User, UserRepository};
 
 struct CreateUser {
     id: u64,
@@ -18,11 +14,6 @@ impl Command for CreateUser {}
 #[derive(Debug)]
 enum UserError {
     AlreadyExists,
-}
-
-trait UserRepository {
-    fn get(&self, id: u64) -> Option<&User>;
-    fn add(&mut self, user: User) -> Result<(), UserError>;
 }
 
 trait CommandHandler<C: Command> {
@@ -55,6 +46,9 @@ mod tests {
         fn get(&self, id: u64) -> Option<&User> {
             self.0.get(&id)
         }
+    }
+
+    impl MockRepo {
         fn add(&mut self, user: User) -> Result<(), UserError> {
             if self.0.contains_key(&user.id) {
                 return Err(UserError::AlreadyExists);
