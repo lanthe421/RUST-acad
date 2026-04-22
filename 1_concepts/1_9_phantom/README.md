@@ -187,9 +187,17 @@ Fact about Vec: Vec may re-allocate on growing.
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - Why does [`PhantomData`] exists in [Rust]? Which problems does it solve?
+
+: `PhantomData` exists in Rust to allow generic types to have type parameters that are not actually used in the type's fields. It solves the problem of ensuring type safety and correctness at compile-time without introducing any runtime overhead. It allows the compiler to enforce invariants and relationships between types, even when no actual data of those types is stored in the struct.
+
 - How does [`PhantomData`]'s transparency work in practise?
+
+
+PhantomData's transparency works in practice by allowing the compiler to treat phantom type parameters as if they were not there for the purposes of auto traits. For example, if you have a struct with a PhantomData field, the struct will inherit the auto traits of the other fields, but not necessarily the phantom type parameters. This can be useful for ensuring that certain invariants are maintained at compile time without affecting the runtime behavior or the traits that the struct implements.
+
 - What alternatives of [`PhantomData`] do exist? When is it meaningful to use them?
 
+Alternatives to PhantomData include using wrapper types, sealed traits, or other marker types that serve a similar purpose. However, PhantomData is the most idiomatic and commonly used approach in Rust for creating phantom types. It is meaningful to use PhantomData when you need to encode type-level information in your types without actually storing any values of those types. This is particularly useful in generic code where you want to ensure type safety and correctness at compile-time.
 
 
 

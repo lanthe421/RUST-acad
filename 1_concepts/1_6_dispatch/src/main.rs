@@ -7,14 +7,14 @@ fn main() {
         fn remove(&mut self, key: &K) -> Option<V>;
     }
 
-    struct User {
+    pub struct User {
         id: u64,
         email: Cow<'static, str>,
         activated: bool,
     }
 
     // --- Dynamic dispatch ---
-    struct DynUserRepository {
+    pub struct DynUserRepository {
         storage: Box<dyn Storage<u64, User>>,
     }
 

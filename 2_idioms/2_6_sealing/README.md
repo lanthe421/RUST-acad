@@ -79,8 +79,23 @@ Seal the traits defined in [this step's crate](src/lib.rs) in the following way:
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What does sealing mean in programming in a broad sense?
+
+Sealing means restricting the ability to extend or implement an API outside its definition place. A sealed class/interface/trait is publicly visible and usable, but cannot be subclassed or implemented by external code. The goal is to give the library author full control over all implementations, enabling future-proof changes without breaking downstream users.
+
 - What is trait sealing in [Rust]? When is it useful?
+
+In Rust, a sealed trait is a public trait that cannot be implemented outside its defining crate (or module). It's achieved by adding a private supertrait or a private type in a method signature — both rely on visibility rules: the name is `pub` inside a private module, so it's accessible within the crate but cannot be named externally.
+
+Useful when:
+- You want to add methods to a trait in future releases without it being a breaking change
+- You want to guarantee all implementations are known and controlled (e.g. for soundness, like `type_id`)
+- You expose a trait as a bound for users to use, but not to implement
+
 - What limitations does trait sealing in [Rust] have? What could it be able to provide if supported by compiler?
+
+Current limitations: sealing is purely a visibility trick — it has no effect on the type system or coherence rules. The compiler still treats a sealed trait as a regular public trait. This means orphan rules and coherence checks don't account for the fact that no external implementations can exist.
+
+If the compiler had native sealed trait support, it could relax coherence rules for sealed traits — for example, allowing blanket impls that would otherwise conflict, since the compiler could prove no external impl will ever exist. This would make sealed traits more powerful and ergonomic, but there's no sign of this being implemented in the near future.
 
 
 
