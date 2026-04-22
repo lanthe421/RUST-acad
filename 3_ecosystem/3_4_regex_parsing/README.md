@@ -111,9 +111,26 @@ Prove your implementation correctness with tests.
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - How does [`regex`] crate achieve linear time complexity? In what price?
+
+It uses an NFA/DFA-based engine (inspired by RE2) which guarantees O(n) time relative to input length. The price is no support for lookahead, lookbehind, or backreferences — those features require backtracking which can be exponential.
+
 - How to avoid regular expression recompilation in [Rust]? Why is it important?
+
+Use once_cell::sync::Lazy (or std::sync::LazyLock since Rust 1.80) to compile the regex once on first use and reuse the result. It matters because regex compilation is expensive — doing it inside a function means paying that cost on every call.
+
 - Which are the common kinds of libraries for writing custom parses in [Rust]? Which benefits does each one have?
+
+Parser combinators (nom, chumsky, combine) — you build the parser directly in Rust by composing small functions. nom is the most performant and great for binary formats. chumsky focuses on high-quality error messages.
+Parser generators (pest, peg, lalrpop) — you describe the grammar in a separate file or macro, and parser code is generated. Grammar is easier to read and reason about, but you have less control over the internals.
+
 - What advantages does libraries give for writing a custom parser? Are they mandatory? When does it make sense to avoid using a library for implementing a parser?
+
+Libraries provide ready-made primitives (numbers, whitespace, delimiters), composability, and error handling — saving you from manually tracking position in the input string.
+
+They are not mandatory. A hand-written parser using &str methods like strip_prefix, split_at, or iterating over chars() works fine.
+
+It makes sense to skip a library when the grammar is trivial, you want zero extra dependencies, or you need full control over performance and error reporting.
+
 
 
 
