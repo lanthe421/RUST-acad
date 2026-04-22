@@ -59,27 +59,7 @@ Provide tests for `CommandHandler<CreateUser>` implementation where `dyn UserRep
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is [`Sized`] trait about? When [Rust] implies it? And when not?
-
-The Sized trait indicates that a type has a known size at compile time.
-Rust implicitly adds Sized in the following cases:
-For all default generic parameters (fn foo<T>(x: T) → T: Sized)
-
-For all default traits (trait Trait {} → Trait: Sized)
-
-For struct fields
-
-Rust does not add Sized (or allows you to unset it):
-When explicitly specifying ?Sized (fn foo<T: ?Sized>(x: &T))
-
-For traits intended for trait objects (can be unset using trait Trait: ?Sized)
-
-For the last field of a struct, which can be DST
-
-The basic rule: anything that can be stored on the stack and passed by value must be Sized. Implicitly adding Sized ensures that generic code only works with types of known size by default, simplifying compilation and preventing errors.
-
 - Why `?Sized` trait bound is important? When should we use it and why?
-
-`?Sized` is important because it allows generic code to work with both sized and unsized types. It's particularly useful when you want to accept trait objects or other dynamically sized types as generic parameters. You should use it when you need to write generic code that can handle both regular types (like i32, String) and unsized types (like [T], str, or trait objects).
 
 
 
