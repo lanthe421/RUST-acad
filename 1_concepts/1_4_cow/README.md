@@ -81,9 +81,54 @@ If neither `APP_CONF` env var nor `--conf` command line argument is specified, t
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is [`Cow`]? How it works?
+
+Cow stands for "Clone-on-Write" and is defined as Cow<'a, B> where B is a type that can be borrowed. It represents either:
+Borrowed data (Borrowed variant)
+
+Owned data (Owned variant)
+
+The key feature is that it only clones the data when mutation is attempted (copy-on-write semantics)
+
+The key mechanism is lazy cloning.
+Cow's key feature is that it doesn't clone data until it's actually needed. While you're only reading data, Cow works with what it has—whether a reference or its own data. But as soon as you try to modify the data, Cow springs into action:
+
+If the data was borrowed, Cow creates a copy, converts it from Borrowed to Owned, and only then allows modification.
+
+If the data was already owned, the changes occur immediately, without additional cloning.
+
+
 - When [`Cow`] is useful and why? Give some meaningful examples.
 
+Cow is useful in scenarios where you need flexibility between borrowing and owning data while avoiding unnecessary allocations. It shines in situations where the need for ownership is conditional or unknown until runtime.
 
+Examples:
+1. Functions that occasionally modify data
+```rust
+fn sanitize(input: &str) -> Cow<'_, str> {
+    if input.contains("<") {
+        Cow::Owned(input.replace("<", ""))
+    } else {
+        Cow::Borrowed(input)
+    }
+}
+```
+
+2. Configuration with default values
+```rust
+let host = match env::var("HOST") {
+    Ok(val) => Cow::Owned(val),      // from var
+    Err(_) => Cow::Borrowed("localhost"),  // static default
+};
+```
+
+3. Caching
+```rust
+if let Some(cached) = cache.get(key) {
+    Cow::Borrowed(cached)  // Хит — просто ссылка
+} else {
+    Cow::Owned(compute(key))  // Промах — новое значение
+}
+```
 
 
 [`beef`]: https://docs.rs/beef
