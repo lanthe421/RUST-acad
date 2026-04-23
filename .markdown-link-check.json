@@ -20,7 +20,7 @@
   }, {
     "pattern": "^https://aayushyavajpayee.substack.com"
   }, {
-    "pattern": "^https://github.com/instrumentisto/rust-incubator/generate"
+    "pattern": "^https://github.com/tyranron/rust-incubator/generate"
   }, {
     "pattern": "^https://crates.io/search\\?"
   }, {
