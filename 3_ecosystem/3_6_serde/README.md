@@ -142,8 +142,31 @@ Prove your implementation correctness with tests.
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - How does [`serde`] achieve its performance? How does it model data and decouple responsibilities?
+
+serde relies entirely on static dispatch — no runtime reflection. The derive macro generates `Serialize`/`Deserialize` implementations at compile time, so the compiler knows the exact shape of every type and can inline and optimize everything away.
+
+Responsibilities are split into three layers:
+
+- Serialize/Deserialize — describe the data model (your types)
+- Serializer/Deserializer — implemented by format crates (serde_json, toml, etc.)
+- Visitor — the bridge between them, letting the format feed data and the type consume it
+
+A type is written once and works with any format without modification.
+
 - When does it have sense to prefer [`musli`] rather than [`serde`]?
+
+When you need to serialize the same data model in multiple formats with different representations. In `serde` that requires separate types or complex `with` adapters. `musli` solves this with `Mode` — a trait parameter that changes serialization behavior per-format without duplicating the struct definition.
+
 - What is zero-copy deserialization? Why is it beneficial? How does it work in [`serde`]? How does it work in [`rkyv`]?
+
+Zero-copy means deserialized data borrows directly from the input buffer — no allocations, no copying.
+
+Benefits: fewer allocations, less allocator pressure, faster for read-heavy workloads.
+
+In `serde` it works via the `'de` lifetime on `Deserializer`. Types holding `&'de str` or `&'de [u8]` can reference the input slice directly — but only if the format supports it (e.g. `serde_json` does this for strings without escape sequences). Parsing still happens, so it's partial zero-copy.
+
+In rkyv the approach is more radical: data is serialized into a binary layout that mirrors Rust structs in memory. Deserialization is literally `mmap` + pointer cast — no parsing at all, just alignment validation. This makes `rkyv` ideal for IO-bound workloads and on-disk caches.
+
 
 
 

@@ -3,3 +3,14 @@ name = "step_3_6"
 version = "0.1.0"
 edition = "2024"
 publish = false
+
+[dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+serde_yaml = "0.9.34+deprecated"
+toml = { version = "0.8.23", features = ["display"] }
+chrono = { version = "0.4.44", features = ["serde"] }
+humantime-serde = "1.1.1"
+
+[dev-dependencies]
+serde_json = "1.0.149"
