@@ -23,12 +23,8 @@ struct Trinity<T> {
 
 impl<T: Clone> Trinity<T> {
     fn rotate(&mut self) {
-        let a = self.a.clone();
-        let b = self.b.clone();
-        let c = self.c.clone();
-        self.a = b;
-        self.b = c;
-        self.c = a;
+        mem::swap(&mut self.a, &mut self.b);
+        mem::swap(&mut self.b, &mut self.c);
     }
 }
 
@@ -40,19 +36,14 @@ struct Solver<T> {
 
 impl<T: Clone + PartialEq> Solver<T> {
     fn resolve(&mut self) {
-        let unsolved = mem::take(&mut self.unsolved); // забираем вектор, оставляем пустой
-        self.unsolved = unsolved
-            .into_iter()
-            .filter_map(|mut t| {
-                for _ in 0..3 {
-                    if t == self.expected {
-                        return None; // решён — выбрасываем
-                    }
-                    t.rotate();
+        self.unsolved.retain_mut(|t| {
+            for _ in 0..3 {
+                if *t == self.expected {
+                    return false; // решён — убираем
                 }
-                Some(t) // не решён — оставляем
-            })
-            .collect();
+                t.rotate();
+            }
+            true // не решён — оставляем
+        });
     }
-
 }
