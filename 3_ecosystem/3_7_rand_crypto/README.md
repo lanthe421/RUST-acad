@@ -133,11 +133,42 @@ Implement the following functions:
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is the main trade-off of generating random numbers? How is it applied in practice?
+
+The trade-off is between speed and security. Fast PRNGs (like `SmallRng`, `Xoshiro256++`) are statistically good but predictable if you know the seed — fine for simulations, games, shuffling. CSPRNGs (like `ChaCha20Rng`, or `OsRng` backed by the OS) are cryptographically secure but slower. In practice: use `thread_rng()` (which wraps a CSPRNG) for general purpose, `OsRng` when you need raw OS entropy (key generation), and a fast PRNG only when performance matters and security doesn't.
+
+
 - What is symmetric cryptography? What is asymmetric cryptography? Which benefits does each one have? 
+
+Symmetric: same key encrypts and decrypts (AES, ChaCha20). Fast, simple, great for bulk data — but key distribution is a problem: both parties must share the secret securely beforehand.
+
+Asymmetric: a key pair — public key encrypts or verifies, private key decrypts or signs (RSA, Ed25519). Solves key distribution since the public key can be shared freely. Much slower than symmetric, so in practice asymmetric is used only to establish a shared secret, then symmetric takes over (that's exactly how TLS works).
+
 - What is signing in asymmetric cryptography? What is encryption in asymmetric cryptography? How do they work given the same private and public keys?
+
+Signing: you sign with your private key, anyone verifies with your public key. Proves authorship and integrity — the message isn't secret, just authenticated.
+
+Encryption: sender encrypts with recipient's public key, only the recipient can decrypt with their private key. Provides confidentiality.
+
+Same key pair, opposite directions: signing goes private→public, encryption goes public→private.
+
 - What is hash function? What is password hashing? Why is it not enough to use just a raw hash function for password hashing?
+
+A hash function maps arbitrary data to a fixed-size digest deterministically and irreversibly (SHA-256, SHA-3). Fast by design.
+
+Password hashing (Argon2, bcrypt, scrypt) is intentionally slow and memory-hard. Raw hash functions are too fast — an attacker can brute-force billions of candidates per second on a GPU. Password hashing algorithms add a salt (prevents rainbow tables) and tune cost parameters to make each attempt expensive. Raw SHA-256 on a password is essentially no protection against offline attacks
+
 - What is constant-time comparison? When and why it should be used?
+
+Normal string comparison short-circuits on the first mismatched byte — the time it takes leaks information about how many bytes matched. An attacker can exploit this timing difference to guess secrets byte by byte (timing attack).
+
+Constant-time comparison always runs for the full length regardless of where the mismatch is. Use it whenever comparing secrets: HMACs, tokens, password hashes. The subtle crate provides this in Rust.
+
 - Which are options of using [TLS] in [Rust]? Which advantages and disadvantages does each one have?
+
+`native-tls` — wraps the platform's native TLS (SChannel on Windows, Secure Transport on macOS, OpenSSL on Linux). Stable, battle-tested, handles legacy crypto. Downside: depends on external C libraries, behavior differs across platforms.
+
+`rustls` — pure Rust, built on `ring`. No C dependencies, consistent cross-platform behavior, memory-safe. Downside: intentionally drops legacy crypto (no TLS 1.0/1.1, no old cipher suites), no stable release yet. Best choice when legacy compatibility isn't a concern.
+
 
 
 
