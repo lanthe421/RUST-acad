@@ -1,4 +1,4 @@
-use::std::fmt::Debug;
+use crate::post::Id;
 
 mod post {
     #[derive(Clone, Debug, PartialEq)]
@@ -11,17 +11,21 @@ mod post {
     pub struct Body(pub String);
 }
 mod user {
-    #[derive(Clone, Debug, PartialEq)]
+    use derive_more::{From, Into};
+    #[derive(Clone, Debug, PartialEq, From, Into)]
     pub struct Id(pub u64);
 }
 
+#[derive(Debug)]
 pub struct New;
+#[derive(Debug)]
 pub struct Unmoderated;
+#[derive(Debug)]
 pub struct Published;
 #[derive(Debug)]
 pub struct Deleted;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct PostData {
     id: post::Id,
     user_id: user::Id,
@@ -29,6 +33,7 @@ struct PostData {
     body: post::Body,
 }
 
+#[derive(Debug)]
 struct Post<State> {
     data: PostData,
     state: std::marker::PhantomData<State>,

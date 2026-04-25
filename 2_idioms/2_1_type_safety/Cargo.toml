@@ -3,3 +3,6 @@ name = "step_2_1"
 version = "0.1.0"
 edition = "2024"
 publish = false
+
+[dependencies]
+derive_more = { version = "2.1.1", features = ["into", "from"] }
