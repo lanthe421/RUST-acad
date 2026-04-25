@@ -131,8 +131,51 @@ Implement this behavior using [typestates idiom][3], so that calling `delete()` 
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - Why expressing semantics in types is good? What are the benefits and downsides?
+
+Benefits:
+Compile-time guarantees — Invalid states become unrepresentable, preventing bugs before runtime
+
+Self-documenting code — Types act as executable documentation
+
+Eliminates runtime checks — Less unwrap(), expect(), and defensive programming
+
+Refactoring safety — Type system catches broken invariants immediately
+
+Zero-cost abstractions — Compiler optimizes away the type-level constructs
+
+Downsides:
+Increased complexity — Complex type signatures can hurt readability
+
+Longer compile times — More trait bounds and type inference work
+
+Steep learning curve — Newcomers struggle with lifetimes, traits, and generics
+
+Verbosity — Sometimes requires boilerplate (e.g., newtype pattern, phantom data)
+
+Over-engineering risk — Temptation to encode everything at type level when simpler solutions exist
+
+
 - What is newtype pattern? How does it work? Which guarantees does it give?
+
+Newtype pattern is a technique where you create a new type by wrapping an existing type in a tuple struct with a single element.
+- It works by leveraging Rust's type system to create distinct types that have the same underlying representation but different semantic meanings.
+- It provides guarantees such as:
+  * Type safety: Prevents mixing up different concepts that happen to have the same underlying type
+  * Zero-cost abstractions: No runtime overhead since the wrapper is optimized away
+  * Enhanced expressiveness: Allows encoding domain-specific constraints in the type system
+  * Better error messages: More specific type errors help developers understand what went wrong
+  * Encapsulation: Can control how the wrapped type is accessed and modified
+
 - What is typestates pattern? How does it work? Which guarantees does it give?
+
+Typestate pattern is a design pattern that uses the type system to enforce a sequence of states that an object can be in, and the valid transitions between those states.
+- It works by creating distinct types for each state, where each state type encodes the allowed operations and transitions. State transitions are implemented as methods that consume the current state and return the next state.
+- It provides guarantees such as:
+  * Compile-time state validation: Invalid state transitions are caught at compile time
+  * Expressive APIs: The type system enforces valid usage patterns
+  * Prevention of runtime errors: Eliminates invalid state combinations
+  * Clear contracts: Each state type documents what operations are allowed
+  * Safe refactoring: Changes to state machines are type-checked
 
 
 
