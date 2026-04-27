@@ -79,10 +79,26 @@ Examples:
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - How does [`log`] crate achieve its reusability over ecosystem? What are the ideas behind it?
+
+`log` is a pure facade — it defines the `Log` trait and macros (`info!`, `warn!`, etc.), but has no implementation. Libraries depend only on log, the application picks one backend (e.g. `env_logger`, `log4rs`) and initializes it once at startup. This means all library logs flow through the same pipeline the app controls, without any coupling between library authors and logging implementations.
+
 - Why logging is preferred over printing (`println!` usage)? When it's not?
+
+Logging gives you levels (filter noise in prod), structured fields, timestamps, multiple outputs, and zero cost when disabled at compile time. `println!` is always on, always unstructured, always to stdout.
+
+`println!` is fine for CLI tools where output is the product, not a diagnostic, or for quick debugging during development.
+
 - What is structured logging? What benefits does it provide?
+
+Instead of a plain string `"user 42 logged in"`, structured logging records key-value pairs: `{ event: "login", user_id: 42 }`. Benefits: logs are machine-parseable, easy to query and aggregate in tools like Elasticsearch or Datadog, no need to write regex to extract fields from strings.
+
 - Why [`tracing`] crate is good for logging? What makes it preferred over [`slog`] and [`log`] crates?
+
+`tracing` adds the concept of spans — units of work with a start and end, which can be nested. This means you get causality and temporality for free: you can see not just "this event happened" but "this event happened inside this request, inside this task". It's structured like `slog`, compatible with `log` (so library logs still flow through), and integrates with OpenTelemetry, Jaeger, Sentry out of the box. `slog` is structured but has no spans; `log` is neither structured nor has spans.
+
 - What is tracing? Why is it beneficial for observability?
+
+Tracing is recording the execution path of a request across time and components — which functions were called, how long they took, what context they carried. In distributed systems a single request touches multiple services; tracing lets you follow it end-to-end. This is essential for finding latency bottlenecks, understanding failures, and correlating events that plain logs can't connect.
 
 
 
