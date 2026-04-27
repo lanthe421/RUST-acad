@@ -1,0 +1,1 @@
+{"timestamp":"2026-04-25T09:20:30.150673300Z","level":"INFO","fields":{"message":"http","file":"access.log","method":"POST","path":"/some"},"target":"access_log"}
