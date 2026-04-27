@@ -8,9 +8,14 @@ fn main() {
     println!("Refactor me!");
 }
 
+/// A projected state built from a series of events.
 pub trait Aggregate: Default {
+    /// A static string representing the type of the aggregate.
+    ///
+    /// Note: This should effectively be a constant value, and should never change.
     fn aggregate_type() -> &'static str;
 
+    /// Consumes the event, applying its effects to the aggregate
     fn apply<E>(&mut self, event: E)
     where
         E: AggregateEvent<Self>,
@@ -19,35 +24,48 @@ pub trait Aggregate: Default {
     }
 }
 
+/// An identifier for an aggregate.
 pub trait AggregateId<A> {
+    /// Gets the stringified aggregate identifier.
     fn as_str(&self) -> &str;
 }
 
+/// A thing that happened.
 pub trait Event {
+    /// A static description of the event.
     fn event_type(&self) -> &'static str;
 }
 
+/// An event that can be applied to an aggregate.
 pub trait AggregateEvent<A: Aggregate>: Event {
+    /// Consumes the event, applying its effects to the aggregate.
     fn apply_to(self, aggregate: &mut A);
 }
-
+/// Represents an event sequence number, starting at 1
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EventNumber(NonZeroU64);
 
 impl EventNumber {
+    /// The minimum [EventNumber].
     #[allow(unsafe_code)]
     pub const MIN_VALUE: EventNumber =
-        EventNumber(unsafe { NonZeroU64::new_unchecked(1) });
+    // One is absolutely non-zero, and this is required for this to be
+    // usable in a `const` context.
+    EventNumber(unsafe { NonZeroU64::new_unchecked(1) });
 
+    /// Increments the event number to the next value.
     #[inline]
     pub fn incr(&mut self) {
         self.0 = NonZeroU64::new(self.0.get() + 1).unwrap();
     }
 }
 
+// An aggregate version.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Version {
+    /// The version of an aggregate that has not had any events applied to it.
     Initial,
+    /// The version of the last event applied to the aggregate.
     Number(EventNumber),
 }
 
@@ -59,6 +77,10 @@ impl Default for Version {
 }
 
 impl Version {
+    /// Creates a new `Version` from a number.
+    ///
+    /// The number `0` gets interpreted as being `Version::Initial`, while any other number is interpreted as the
+    /// latest event number applied.
     #[inline]
     pub fn new(number: u64) -> Self {
         NonZeroU64::new(number)
@@ -66,7 +88,8 @@ impl Version {
             .map(Version::Number)
             .unwrap_or(Version::Initial)
     }
-
+    
+    /// Increments the version number to the next in sequence.
     #[inline]
     pub fn incr(&mut self) {
         match *self {
