@@ -99,8 +99,23 @@ Write a program with the following workflow:
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is concurrency? What is parallelism? How do they relate to each other and how do they differ?
+
+Concurrency is when multiple tasks overlap in time but don't necessarily run simultaneously — e.g. two threads on one core switching between each other. Parallelism is when tasks literally execute at the same time on different cores. Parallelism is a subset of concurrency. Concurrency is about the structure of a program, parallelism is about physical execution.
+
 - How parallelism is represented in [Rust]? Which are common crates for using it?
+
+The main tool is `rayon` — it turns sequential iterators into parallel ones via `par_iter()` and manages a thread pool automatically. There's also `dpc-pariter` for parallel iterators with backpressure, and `fork_union` for fork-join parallelism. For low-level data parallelism — SIMD via `std::simd` (nightly) or `packed_simd`.
+
 - What are the main ways of threads synchronization in [Rust]? Which advantages and disadvantages does each one have? What are the use-cases for each one?
+
+- Atomics (`std::sync::atomic`) — lock-free operations on primitive types. Fast, but limited to simple values. Good for counters and flags.
+
+- Shared state (`Mutex`, `RwLock`) — exclusive access to data. `Mutex` allows one reader/writer at a time, `RwLock` allows many readers or one writer. Downside: risk of deadlocks and contention under high load.
+
+- Channels (`std::sync::mpsc`, `crossbeam-channel`) — pass data between threads via messages, no shared state needed. `crossbeam-channel` is more powerful: supports multiple producers and consumers, bounded/unbounded buffers, and `select!`.
+
+General rule: prefer channels when threads exchange data, and `Mutex` when you need shared mutable state.
+
 
 
 
