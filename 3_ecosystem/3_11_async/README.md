@@ -182,17 +182,52 @@ It must read a list of links from the `<file>`, and then concurrently download a
 ## Questions
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
+
 - What is asynchronous programming? How does it relate to multithreading? Which problems does it solve? What are the prerequisites for its existing?
+
+  Async programming is a model where tasks can be suspended while waiting for I/O and resumed later, without blocking the thread. It solves the I/O-bound problem: instead of spawning a thread per connection (expensive), one thread can handle thousands of concurrent I/O operations. It's not a replacement for multithreading — async handles concurrency, threads handle parallelism. The prerequisite is OS-level non-blocking I/O (epoll, kqueue, IOCP).
+
 - How does non-blocking I/O works? How does it differs from blocking I/O?
+
+  Blocking I/O: the thread calls `read()`/`write()`, the OS suspends it until data is ready. Non-blocking I/O: the call returns immediately with "not ready yet", and the OS notifies the program (via epoll/kqueue/IOCP) when the operation completes. The runtime uses this to poll other tasks in the meantime.
+
 - What is a [`Future`]? Why do we need it? How does it work in [Rust] and how do its semantics differ from other programming languages? What makes it zero-cost?
+
+  A `Future` represents a lazy computation that will produce a value eventually. It does nothing until polled. The executor calls `poll()` — if the result is ready it returns `Poll::Ready(value)`, otherwise `Poll::Pending` and registers a `Waker` to be notified when to poll again. This is pull-based, unlike push-based promises in JS which execute eagerly. Zero-cost because it compiles to a state machine with no heap allocation per await point.
+
 - What is `async`/`.await`? How do they desugar into a [`Future`]? Why are they vital for ergonomics?
+
+  `async fn` desugars into a function returning `impl Future`. Each `.await` point becomes a state in a generated state machine — the future suspends there and resumes from that exact point when polled again. Without `async`/`.await` you'd have to write state machines by hand or chain combinators, which is error-prone and hard to read.
+
 - What is an asynchronous task? How does it compare to a [`Future`]?
+
+  A `Future` is just a value — it does nothing on its own. A task is a `Future` submitted to an executor via `tokio::spawn`. The executor drives it to completion by polling it. Tasks are the unit of scheduling, futures are the unit of computation.
+
 - What is a [`Waker`]? How does it work? Why is it required?
+
+  When a future returns `Poll::Pending`, it must arrange for the executor to poll it again later. It does this via the `Waker` provided in `task::Context`. When the I/O operation completes (e.g. OS signals via epoll), the waker's `wake()` is called, which tells the executor to re-schedule and poll that task again. Without `Waker` the executor would have to busy-poll all futures constantly.
+
 - What is an asynchronous runtime? From which parts does it usually consist?
+
+  An executor (polls futures, schedules tasks), a reactor (listens for OS I/O events via epoll/kqueue/IOCP and wakes tasks), a thread pool (for multi-thread runtimes), and async I/O primitives (timers, sockets, channels). Tokio is the most mature example.
+
 - What kind of multitasking is represented by [`Future`]s in [Rust]? Which advantages and disadvantages does it have?
+
+  Cooperative multitasking — tasks voluntarily yield control at `.await` points. Advantage: precise control, low overhead, no preemption cost. Disadvantage: a task that never yields (CPU-bound loop) blocks the whole executor thread. You must use `tokio::task::yield_now()` or `spawn_blocking` for such cases.
+
 - What kinds of asynchronous runtimes do exist in [Rust] regarding multithreading? Which advantages and disadvantages does each one have?
+
+  - Single-thread: all futures run on one thread. No `Send` required, no synchronization overhead. Risk: one blocking task freezes everything.
+  - Multi-thread with work-stealing: futures can migrate between threads, must be `Send`. Better CPU utilization. This is tokio's default multi-thread scheduler.
+  - Thread-per-core: futures are pinned to a thread, no migration, no `Send` required, better cache locality. Examples: `actix-rt`, `glommio`.
+
 - Why blocking an asynchronous runtime is bad? How to avoid it in practice?
+
+  The executor thread runs many tasks cooperatively. If one task blocks (e.g. `std::thread::sleep`, sync file I/O, heavy CPU work), all other tasks on that thread are frozen. Fix: use `tokio::task::spawn_blocking` for blocking code, `tokio::fs`/`tokio::net` for I/O, and `tokio::task::yield_now()` in busy loops.
+
 - What are the key points of actor model concurrency paradigm? How may it be useful in [Rust]?
+
+  Each actor has a private mailbox (channel), processes messages sequentially, and communicates only via messages — no shared state. This eliminates data races by design. In Rust it's useful for long-lived stateful entities (WebSocket connections, background workers) where you want to encapsulate mutable state behind a message-passing interface. `actix` is the main implementation.
 
 
 
