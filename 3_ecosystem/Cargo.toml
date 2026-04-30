@@ -3,3 +3,20 @@ name = "step_3"
 version = "0.1.0"
 edition = "2024"
 publish = false
+
+[dependencies]
+clap = { version = "4.6.1", features = ["derive", "env"] }
+tokio = { version = "1.52.1", features = ["full"] }
+reqwest = { version = "0.13.3" }
+serde = { version = "1.0.228", features = ["derive"] }
+toml = { version = "1.1.2+spec-1.1.0" }
+config = { version = "0.15.22" }
+tracing = { version = "0.1.44" }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+thiserror = { version = "2.0.18" }
+mozjpeg = { version = "0.10.13" }
+img-parts = { version = "0.4" }
+
+[dev-dependencies]
+proptest = { version = "1.11.0" }
+tempfile = { version = "3.27.0" }
