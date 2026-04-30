@@ -166,12 +166,159 @@ Write a `GlobalStack<T>` collection which represents a trivial unsized [stack] (
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is shared ownership? Which problem does it solve? Which penalties does it have?
+
+In Rust, shared ownership refers to the ability for multiple parts of a program to own the same data simultaneously. This is a fundamental departure from Rust's default ownership model, where every value has a single, exclusive owner.
+
+Rust enforces a strict rule: a value can have either one owner (exclusive access) or multiple owners (shared access), but not both at the same time unless the shared access is managed through specific, safe abstractions.
+
+Shared ownership is not the default. It is implemented using smart pointers that allow a single value to be owned by multiple bindings. The primary tools for shared ownership in Rust are:
+
+Rc<T> (Reference Counted): Enables shared ownership on the single-threaded heap.
+
+Arc<T> (Atomically Reference Counted): Enables shared ownership on the multi-threaded heap. It uses atomic operations for thread safety.
+
+Weak<T>: A non-owning reference used alongside Rc or Arc to prevent reference cycles and memory leaks.
+
+These smart pointers work by storing the data on the heap and maintaining a reference count. When you clone an Rc or Arc, you don't clone the data; you increment the reference count and create a new pointer to the same heap-allocated data.
+
+
+What problem does it solve?
+It allows you to go beyond Rust's strict tree-based ownership. It's useful for:
+
+Graph structures (not trees)
+
+Cyclic relationships (paired with Weak)
+
+Avoiding complex lifetimes ('a, 'b)
+
+Safe access to data from multiple threads
+
+Which penalties does it have:
+Time overhead: reference counting (Arc's atomic counting is more expensive)
+
+Memory overhead: heap data + control block (usually 16 bytes)
+
+Code complexity: explicit .clone() everywhere, requires a RefCell/Mutex for modifications
+
+Leak risk: cyclic references are not automatically deallocated, requiring the use of Weak
+
+
 - What is interior mutability? Why is it required in [Rust]? In what price it comes?
+
+Interior mutability is a design pattern in Rust that allows you to mutate data even when there are immutable references (&T) to it.
+
+Normally, Rust's borrowing rules forbid mutation through an immutable reference. Interior mutability bypasses this by shifting borrow checking from compile time to runtime, using unsafe code internally wrapped in a safe API.
+
+The primary types that provide interior mutability:
+
+RefCell<T> — single-threaded, checks borrows at runtime (panics on violation)
+
+Mutex<T> / RwLock<T> — thread-safe, blocks threads instead of panicking
+
+
+Why Is It Required?
+Interior mutability solves the problem: "How do I mutate data when the API forces me to have only &self?"
+
+Classic scenario — shared ownership with Rc/Arc:
+```rust
+use std::rc::Rc;
+use std::cell::RefCell;
+
+let shared_data = Rc::new(RefCell::new(42));
+
+let owner1 = Rc::clone(&shared_data);
+let owner2 = Rc::clone(&shared_data);
+
+*owner1.borrow_mut() = 100;  // Mutate through immutable Rc
+println!("{}", owner2.borrow()); // 100
+```
+Without interior mutability, Rc<T> only gives &T — immutable access. You'd have no way to modify shared data. RefCell wraps the data and allows mutation through runtime checks
+
+
 - Is it possible to write a custom type with interior mutability without using `std`? Why?
+
+Yes, it's possible.
+Why it's possible:
+
+UnsafeCell is in the kernel, not in the standard code—it's a fundamental primitive that enables internal mutability through unsafe code.
+
+Internal mutability doesn't require emitting systems—it's based on:
+  Deadline checking (borrow counters)
+
+  Atomic operations (for thread safety)
+
+  All of this is available in the kernel, without any OS dependencies.
+
+core provides all the necessary tools:
+
+  UnsafeCell — the basis for any internal mutability
+
+  Cell and RefCell (you can implement them yourself)
+
+  Atomic types (AtomicUsize, AtomicPtr)
+
+  Synchronization primitives based on atomic operations
+
+The only limitation is that without std, you can't use high-level abstractions like Mutex or RwLock, but you can implement their equivalents yourself using atomic operations.
+
 - What is shared mutability? Which are its common use-cases?
+
+Shared mutability is the ability to mutate data through shared references (&T), bypassing Rust's usual rule that mutation requires exclusive access (&mut T).
+
+Common Use-Cases:
+Reference counting — Rc<T> and Arc<T> need to mutate internal reference counts while sharing ownership
+
+Caching/memoization — lazily computing and storing values behind a shared reference
+
+Observability — logging, metrics, or debug counters that need to be updated from multiple shared references
+
+Self-referential structures — data structures where fields point to each other within the same type
+
+Shared state in concurrent programs — thread-safe data structures like Arc<Mutex<T>> or Arc<RwLock<T>>
+
+Mock objects in testing — tracking calls and behavior through shared test doubles
+
 - How can we expose panic/deadlock-free API to users when using interior mutability?
+Use Fallible Methods:
+Return Result or Option instead of panicking
 
 
+Avoid Recursive Locking:
+Use RefCell instead of Mutex for single-threaded code (prevents deadlocks through runtime checks)
+
+Use ReentrantMutex if reentrancy is actually needed
+
+Document lock ordering requirements
+
+
+Minimize Critical Sections:
+Keep locks held for as short as possible
+
+
+Handle Poisoning:
+Use PoisonError to recover from panics in mutexes:
+```rust
+let guard = mutex.lock().unwrap_or_else(|poisoned| {
+    poisoned.into_inner()  // Recover despite panic
+});
+```
+
+Use Atomic Operations Where Possible:
+Atomics are inherently deadlock-free and panic-free
+
+Document Panic Conditions:
+Clearly document when methods may panic (e.g., "Panics if already borrowed mutably")
+
+Use Non-Panicking Alternatives:
+try_borrow_mut() instead of borrow_mut()
+
+compare_exchange() instead of store() with assertions
+
+Fallible initialization patterns
+
+
+Key Principle
+Separate decision from action — validate before executing, return errors instead of panicking, and keep critical sections free of user-provided code that might panic.
 
 
 [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html

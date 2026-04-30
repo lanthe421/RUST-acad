@@ -166,7 +166,16 @@ Refactor the code contained in [this step's crate](src/lib.rs), so the bugs intr
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - How can exhaustiveness checking be useful in [Rust] code for enums and structs? When should we use it, when not?
+
+For enums: using exhaustive `match` (without `_` wildcard) ensures the compiler forces you to handle every variant. When a new variant is added, all match sites break at compile-time, preventing "forgot to handle" bugs. Should be used whenever the match logic is semantically tied to all variants (e.g. permissions, event dispatch). Avoid when you genuinely don't care about most variants and the enum is stable/external.
+
+For structs: exhaustive destructuring (without `..`) ensures that when a new field is added, all destructuring sites break at compile-time. Useful in `Display`, serialization, or any logic that must account for all fields. Avoid when the struct has many fields and only one or two are relevant — in that case `..` is fine and less noisy.
+
 - How does `#[non_exhaustive]` attribute work in [Rust]? What are its use-cases? When should it be used, when not?
+
+`#[non_exhaustive]` on a type in a library crate prevents downstream crates from constructing it with struct literal syntax or matching it without a `_` wildcard. Within the defining crate it has no effect. This allows the library author to add new fields or variants in a future version without breaking downstream code — a semver-compatible change.
+
+Use it when publishing a library and the type is expected to grow over time (e.g. error enums, config structs, event types). Don't use it in application code or when the type is intentionally closed — it forces downstream users to always add a wildcard arm, which defeats the purpose of exhaustiveness checking on their side.
 
 
 
