@@ -53,7 +53,7 @@ This project represents a hard-way step-by-step [Rust] learning course from lang
 >
 > To be up-to-date with the recent changes in your own copy of this repository, attach the upstream history with the following commands:
 > ```bash
-> git remote add upstream https://github.com/instrumentisto/rust-incubator.git
+> git remote add upstream https://github.com/tyranron/rust-incubator.git
 > git fetch upstream main
 > git merge upstream/main --allow-unrelated-histories
 > ```
@@ -165,7 +165,7 @@ Each step must be performed as a separate [PR (pull request)][PR] with an approp
 [IntelliJ Toml]: https://plugins.jetbrains.com/plugin/8195-toml
 [Learning Material for Idiomatic Rust]: https://corrode.dev/blog/idiomatic-rust-resources
 [PR]: https://help.github.com/articles/github-glossary/#pull-request
-[RSS subscription]: https://github.com/instrumentisto/rust-incubator/commits/main.atom
+[RSS subscription]: https://github.com/tyranron/rust-incubator/commits/main.atom
 [Rust]: https://www.rust-lang.org
 [Rust 2018]: https://doc.rust-lang.org/edition-guide/rust-2018/index.html
 [Rust 2021]: https://doc.rust-lang.org/edition-guide/rust-2021/index.html
@@ -175,7 +175,7 @@ Each step must be performed as a separate [PR (pull request)][PR] with an approp
 [Rust Cookbook]: https://rust-lang-nursery.github.io/rust-cookbook
 [Rust Design Patterns]: https://rust-unofficial.github.io/patterns
 [Rust Edition Guide]: https://doc.rust-lang.org/edition-guide
-[Rust FAQ]: https://prev.rust-lang.org/faq.html
+[Rust FAQ]: https://web.archive.org/web/20201025151758/https://prev.rust-lang.org/en-US/faq.html
 [Rust on Exercism]: https://exercism.org/tracks/rust/exercises
 [Rust Playground]: https://play.rust-lang.org
 [Rust Quiz]: https://github.com/dtolnay/rust-quiz
@@ -188,7 +188,7 @@ Each step must be performed as a separate [PR (pull request)][PR] with an approp
 [rustup]: https://rustup.rs
 [This Week in Rust]: https://this-week-in-rust.org
 
-[1]: https://github.com/instrumentisto/rust-incubator/generate
-[2]: https://github.com/instrumentisto/rust-incubator/subscription
+[1]: https://github.com/tyranron/rust-incubator/generate
+[2]: https://github.com/tyranron/rust-incubator/subscription
 [11]: https://help.github.com/en/articles/creating-a-repository-from-a-template
 [13]: https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html
