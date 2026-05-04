@@ -131,10 +131,51 @@ Provide two implementations: one via declarative macro and other one via procedu
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What are macros? Which problem do they solve?
+
+Macros are a form of metaprogramming — code that generates code at compile time. They solve problems that regular functions can't: variadic arguments (println!), DSL-like syntax, and automatic trait implementations without runtime overhead.
+
 - Which benefits do declarative macros have in [Rust] comparing to procedural ones? Which downsides and limitations?
+
+Benefits:
+hygienic — they don't leak identifiers into the caller's scope
+
+better IDE support (completion, go-to-definition)
+
+simpler to write for straightforward cases
+
+no separate crate required
+
+Downsides:
+macro_rules! syntax gets unreadable fast for complex logic
+
+no direct AST access — only token pattern matching
+
+no real control flow, limited error reporting
+
 - Which kinds of procedural macros do exist in [Rust]?
+
+``#[proc_macro]`` — function-like, invoked as my_macro!(...)
+``#[proc_macro_attribute]`` — attribute macros, invoked as ``#[my_attr]`` on an item
+``#[proc_macro_derive]`` — derive macros, invoked via ``#[derive(MyTrait)]``
+
 - What are common crates for implementing procedural macros in [Rust]? What responsibilities does each one have? Which are mandatory, which are not?
+
+syn — parses TokenStream into a Rust AST. Nearly always needed, but skippable for trivial cases. Notably increases compile times.
+
+quote — turns AST back into TokenStream via quote! { ... }. Practically mandatory.
+
+proc-macro2 — wraps the standard proc_macro API, enables unit testing of macros. De-facto mandatory when using syn/quote.
+
+darling — declarative parsing of macro attributes. Optional, useful for complex attribute inputs.
+
+synstructure, synthez — helpers for derive macros. Optional.
+
 - What are good practices for implementing procedural macros in [Rust]?
+
+Extract logic into a function taking syn types and returning proc_macro2::TokenStream — makes it unit-testable
+Use ``syn::Error::new_spanned`` for errors so the compiler points to the right location in user code
+Use fully qualified paths in generated code (``::std::collections::BTreeMap``) — avoids breaking when the user hasn't imported the type
+Avoid ``syn`` with ``features = ["full"]`` if you only need simple expression parsing — it significantly slows down compilation
 
 
 
