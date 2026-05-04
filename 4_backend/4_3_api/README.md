@@ -130,11 +130,46 @@ Avoid architecture [over-engineering][42] for this task, just use simple, straig
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is API? What is RPC? How do they relate?
+
+  API (Application Programming Interface) is a contract that defines how one piece of software can interact with another. RPC (Remote Procedure Call) is a specific style of API where a client invokes functions on a remote server as if they were local calls. RPC is a subset of API: every RPC is an API, but not every API is an RPC (e.g. a file system API or a library API is not RPC).
+
 - What does "code-first" approach mean? What does "schema-first" approach mean? Which advantages and disadvantages do they have?
-- What does REST paradigm mean? What are essentials of RESTful API? Which strengths does it have? What does it lack?  
+
+  Code-first means you write the implementation first and the schema (OpenAPI/GraphQL/proto) is generated from it automatically. Advantages: fast to start, schema is always in sync with the code. Disadvantages: the schema is secondary, harder to agree on the API contract upfront across teams.
+
+  Schema-first means you define the contract in an IDL (`.proto`, `.graphql`, OpenAPI YAML) first, then generate code from it. Advantages: the schema is the single source of truth, client and server can be developed in parallel. Disadvantages: more upfront overhead, the schema must be maintained separately from the code.
+
+- What does REST paradigm mean? What are essentials of RESTful API? Which strengths does it have? What does it lack?
+
+  REST (Representational State Transfer) is an architectural style for distributed systems built on top of HTTP. Its essentials are: statelessness (each request is self-contained), resources addressed by URLs, operations expressed via HTTP methods (GET/POST/PUT/DELETE), and a uniform interface.
+
+  Strengths: simplicity, universal HTTP support, cacheability, easy to explore with a browser or curl.
+
+  Weaknesses: no strict schema by default (requires OpenAPI to fix), over-fetching and under-fetching of data, no standard for real-time communication, API versioning is painful.
+
 - What is OpenAPI? What is Swagger? How do they relate? Why are they beneficial for RESTful API?
-- What is GraphQL? Which are strong sides of this technology? What problems does it bring in practice? 
-- What is gRPC? What are its strengths? Which are good use-cases for it, and which are not? Why? 
+
+  OpenAPI is a specification for a machine-readable description of RESTful APIs (YAML/JSON format). Swagger was the original name of the same standard before version 3.0, and is also the name of the tooling ecosystem around it (Swagger UI, Swagger Editor). OpenAPI 3.x is essentially a renamed and extended Swagger 2.0.
+
+  They are beneficial because from a single schema you automatically get interactive documentation (Swagger UI), client SDKs in any language, mock servers, and testing tools — solving REST's main weakness of having no formal contract.
+
+- What is GraphQL? Which are strong sides of this technology? What problems does it bring in practice?
+
+  GraphQL is a query language for APIs where the client specifies exactly what data it needs. The server returns precisely what was requested, nothing more and nothing less.
+
+  Strengths: no over/under-fetching, single endpoint instead of many, powerful introspection (documentation out of the box), easy schema evolution, transport-agnostic (works over HTTP and WebSocket alike).
+
+  Problems in practice: deeply nested queries can cause N+1 database problems (requires DataLoader to mitigate), unbounded query depth can overload the server (requires depth limiting), HTTP caching is harder than with REST, and the learning curve is steeper.
+
+- What is gRPC? What are its strengths? Which are good use-cases for it, and which are not? Why?
+
+  gRPC is a high-performance RPC framework from Google that uses Protocol Buffers as its IDL and HTTP/2 as the transport.
+
+  Strengths: strict typing via `.proto` schema, binary serialization (fast and compact), bidirectional streaming out of the box, code generation for clients and servers in any language, built-in load balancing and health check support.
+
+  Good use-cases: inter-service communication in microservices, performance-critical systems, data streaming, polyglot environments that need a strict contract.
+
+  Poor use-cases: public-facing APIs (browsers cannot use gRPC natively without grpc-web), simple CRUD applications where the overhead is not justified, situations where human-readable requests and responses are important.
 
 
 
