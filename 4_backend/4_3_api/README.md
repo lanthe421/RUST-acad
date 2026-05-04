@@ -124,53 +124,6 @@ Additionally, implement generation of [OpenAPI] schema out of you server [REST]f
 Avoid architecture [over-engineering][42] for this task, just use simple, straightforward and obvious solutions.
 
 
-## Testing
-
-This project includes comprehensive testing tools for concurrent and load testing scenarios.
-
-### 🚀 Quick Start
-
-```bash
-# Terminal 1: Start the server
-cargo run --bin server
-
-# Terminal 2: Run tests
-cargo test --test integration_test
-```
-
-### 📚 Documentation
-
-**New to testing?** Start here: **[START_HERE.md](START_HERE.md)** 👈
-
-| Document | Description | For |
-|----------|-------------|-----|
-| [START_HERE.md](START_HERE.md) | Entry point with navigation | Everyone |
-| [QUICK_TEST.md](QUICK_TEST.md) | Quick start guide (5 min) | Beginners |
-| [TEST_CHEATSHEET.md](TEST_CHEATSHEET.md) | Command reference | Everyone |
-| [TESTING_README.md](TESTING_README.md) | Main testing page | Everyone |
-| [TESTING.md](TESTING.md) | Complete guide | Advanced |
-| [TEST_TOOLS_SUMMARY.md](TEST_TOOLS_SUMMARY.md) | Detailed tool overview | Advanced |
-| [TEST_ARCHITECTURE.md](TEST_ARCHITECTURE.md) | Architecture & diagrams | Experts |
-| [TESTING_INDEX.md](TESTING_INDEX.md) | Documentation index | Navigation |
-
-### 🧪 Available Tests
-
-- **Integration Tests** - Race conditions, concurrency (5-10 threads)
-- **Load Test** - 50 concurrent requests, 200 total
-- **Benchmark** - Performance metrics (P50/P95/P99)
-- **Scripts** - PowerShell/Bash workflow tests
-
-### 💡 Quick Commands
-
-```bash
-cargo test --test integration_test  # Integration tests
-cargo run --example load_test       # Load testing
-cargo run --example benchmark       # Benchmarking
-.\examples\curl_test.ps1            # PowerShell script
-```
-
-**Full documentation:** [START_HERE.md](START_HERE.md)
-
 
 
 ## Questions
