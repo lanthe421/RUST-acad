@@ -1,4 +1,4 @@
-use crate::post::Id;
+use std::fmt::Debug;
 
 mod post {
     #[derive(Clone, Debug, PartialEq)]
@@ -13,7 +13,7 @@ mod post {
 mod user {
     use derive_more::{From, Into};
     #[derive(Clone, Debug, PartialEq, From, Into)]
-    pub struct Id(pub u64);
+    pub struct Id(u64);
 }
 
 #[derive(Debug)]
@@ -33,7 +33,6 @@ struct PostData {
     body: post::Body,
 }
 
-#[derive(Debug)]
 struct Post<State> {
     data: PostData,
     state: std::marker::PhantomData<State>,
@@ -87,7 +86,7 @@ impl Debug for Post<Deleted> {
 fn main() {
     let post = Post::<New>::new(
         post::Id(564),
-        user::Id(512),
+        user::Id::from(512),
         post::Title(String::from("Hello")),
         post::Body("Day".to_string()),
     );
@@ -95,7 +94,7 @@ fn main() {
     println!("{:?}",deleted);
     let post2 = Post::<New>::new(
         post::Id(2),
-        user::Id(42),
+        user::Id::from(42),
         post::Title(String::from("Bye")),
         post::Body(String::from("World")),
     );
