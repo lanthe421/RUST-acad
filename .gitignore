@@ -2,6 +2,13 @@
 /.vscode/
 /*.iml
 .DS_Store
-
 /Cargo.lock
 /target/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
