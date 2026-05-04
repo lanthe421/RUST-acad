@@ -27,8 +27,8 @@ fn main() {
     stack2.push(2);
 
     println!("{:?}", stack.pop());
+    println!("{:?}", stack2.pop());  
+    println!("{:?}", stack2.pop());  
     println!("{:?}", stack.pop());  
-    println!("{:?}", stack.pop());  
-    println!("{:?}", stack.pop());  
-    println!("{:?}", stack)
+    println!("{:?}", stack2)
 }

@@ -76,6 +76,7 @@ To better understand [`Waker`]'s design, usage and features, read through:
 - [Saoirse Shipwreckt: Why async Rust?][69]
 - [Saoirse Shipwreckt: Let futures be futures][70]
 - [Saoirse Shipwreckt: FuturesUnordered and the order of futures][71]
+- [Samyak Sarnayak: The Lock Nobody Held: Deadlocking a Tokio Mutex Without Holding a Lock][75]
 
 
 
@@ -316,3 +317,4 @@ After completing everything above, you should be able to answer (and understand 
 [72]: https://cybernetist.com/2024/04/19/rust-tokio-task-cancellation-patterns
 [73]: https://developerlife.com/2024/05/19/effective-async-rust
 [74]: https://willemvanhulle.tech/blog/streams/func-async
+[75]: https://www.e6data.com/blog/deadlocking-tokio-mutex-without-holding-lock

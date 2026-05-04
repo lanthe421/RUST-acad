@@ -6,6 +6,7 @@ use std::{
     task::{Context, Poll},
     time::Instant,
 };
+use pin_project::pin_project;
 
 trait SayHi: fmt::Debug {
     fn say_hi(self: Pin<&Self>) {
@@ -17,44 +18,76 @@ trait MutMeSomehow {
     fn mut_me_somehow(self: Pin<&mut Self>);
 }
 
-// One blanket impl covers all: Box<T>, Rc<T>, Vec<T>, String, &[u8], T.
-
 impl<T: fmt::Debug> SayHi for T {}
 
-impl<T: Unpin> MutMeSomehow for T {
+impl MutMeSomehow for String {
     fn mut_me_somehow(self: Pin<&mut Self>) {
-        // Safe: T: Unpin means Pin<&mut T> == &mut T.
-        let this: &mut T = Pin::into_inner(self);
-        let _ = this; // &mut access obtained — point of the exercise
+        let this = Pin::into_inner(self);
+        let _ = this;
     }
 }
 
+impl<T: Unpin> MutMeSomehow for Vec<T> {
+    fn mut_me_somehow(self: Pin<&mut Self>) {
+        let this = Pin::into_inner(self);
+        let _ = this;
+    }
+}
+
+impl<T> MutMeSomehow for Box<T> {
+    fn mut_me_somehow(self: Pin<&mut Self>) {
+        let this = Pin::into_inner(self);
+        let _ = this;
+    }
+}
+
+impl<T: Unpin> MutMeSomehow for Rc<T> {
+    fn mut_me_somehow(self: Pin<&mut Self>) {
+        let this = Pin::into_inner(self);
+        let _ = this;
+    }
+}
+
+impl<'a, T> MutMeSomehow for &'a [T] {
+    fn mut_me_somehow(self: Pin<&mut Self>) {
+        let this = Pin::into_inner(self);
+        let _ = this;
+    }
+}
+
+impl MutMeSomehow for i32 {
+    fn mut_me_somehow(self: Pin<&mut Self>) {
+        let this = Pin::into_inner(self);
+        let _ = this;
+    }
+}
+
+
+#[pin_project]
 struct MeasurableFuture<Fut> {
+    #[pin]
     inner_future: Fut,
     started_at: Option<Instant>,
 }
+
+
 
 impl<Fut: Future> Future for MeasurableFuture<Fut> {
     type Output = Fut::Output;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = unsafe { self.get_unchecked_mut() };
-
+        let this = self.project();
         if this.started_at.is_none() {
-            this.started_at = Some(Instant::now());
+            *this.started_at = Some(Instant::now());
         }
-
-        // SAFETY: projecting Pin to the inner_future field (structural pin).
-        let inner = unsafe { Pin::new_unchecked(&mut this.inner_future) };
-
-        match inner.poll(cx) {
+        match this.inner_future.poll(cx) { 
             Poll::Ready(output) => {
                 let elapsed = this.started_at.unwrap().elapsed();
                 println!("Future completed in {} ns", elapsed.as_nanos());
                 Poll::Ready(output)
             }
             Poll::Pending => Poll::Pending,
-        }
+         }
     }
 }
 
