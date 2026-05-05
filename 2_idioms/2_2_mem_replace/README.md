@@ -148,7 +148,55 @@ Improve and optimize the code contained in [this step's crate](src/main.rs) to c
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is the reason of [`mem::replace`] existing in [Rust]? What does it give to us? Why cannot we solve the same problems without it?
+
+mem::replace allows you to extract a value from &mut T while simultaneously writing a new value to it. This is necessary because Rust prohibits simply moving a value from a mutable reference—the reference must always point to valid data. Without mem::replace , you would have to either clone the value (expensive or impossible) or use unsafe code.
+
 - Provide some meaningful examples of using [`mem::replace`] in [Rust].
+
+1. Cache Implementation with Invalidation
+```rust
+struct Cache<T> {
+    data: Option<T>,
+    updated: bool,
+}
+
+impl<T> Cache<T> {
+    fn take(&mut self) -> Option<T> {
+        self.updated = false;
+        mem::replace(&mut self.data, None)
+    }
+}
+```
+
+2. Efficient State Transitions
+```rust
+enum ConnectionState {
+    Connecting,
+    Connected { socket: TcpStream, buffer: Vec<u8> },
+    Disconnected,
+}
+
+impl ConnectionState {
+    fn disconnect(&mut self) -> Option<(TcpStream, Vec<u8>)> {
+        if let Self::Connected { socket, buffer } = self {
+            Some(mem::replace(
+                &mut *socket,
+                mem::replace(&mut *buffer, Vec::new())
+            ))
+        } else {
+            None
+        }
+    }
+}
+```
+
+3. Conditional Value Replacement
+```rust
+fn process_data(data: &mut Option<Vec<u8>>) -> Vec<u8> {
+    mem::replace(data, Some(Vec::new())).unwrap_or_else(Vec::new)
+}
+```
+
 
 
 
