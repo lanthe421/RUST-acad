@@ -113,7 +113,6 @@ Despite the fact it's quite a feature rich solution, it [lacks good support for 
 
 - [Sylvain Kerkour: Overview of the Rust cryptography ecosystem][15] (Tue, Aug 24, 2021)
 - [Sahil Mahapatra: Axum Backend Series: Implement JWT Access Token][20]
-- [Sylvain Kerkour: Breaking SHA-2: length extension attacks in practice with Rust][21]
 
 
 
@@ -189,4 +188,3 @@ After completing everything above, you should be able to answer (and understand 
 [18]: https://github.com/awslabs/aws-lc-rs#motivation
 [19]: https://aws.amazon.com/blogs/opensource/introducing-aws-libcrypto-for-rust-an-open-source-cryptographic-library-for-rust
 [20]: https://blog.0xshadow.dev/posts/backend-engineering-with-axum/axum-jwt-access-token
-[21]: https://kerkour.com/sha256-length-extension-attacks
