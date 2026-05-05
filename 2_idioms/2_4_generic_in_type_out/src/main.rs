@@ -1,10 +1,13 @@
-use std::net::{IpAddr, SocketAddr};
+use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 
 fn main() {
-    println!("Refactor me!");
+    // Error::new now accepts &str, String, or anything Into<String>
+    let mut err = Error::new("NO_USER");
+    err.status(404).message("User not found");
 
-    let mut err = Error::new("NO_USER".to_string());
-    err.status(404).message("User not found".to_string());
+    // Server::bind accepts anything that implements ToSocketAddrs
+    let mut server = Server::default();
+    server.bind("127.0.0.1:8080");
 }
 
 #[derive(Debug)]
@@ -26,9 +29,10 @@ impl Default for Error {
 }
 
 impl Error {
-    pub fn new(code: String) -> Self {
+    // Accept any type convertible to String: &str, String, Cow<str>, etc.
+    pub fn new(code: impl Into<String>) -> Self {
         let mut err = Self::default();
-        err.code = code;
+        err.code = code.into();
         err
     }
 
@@ -37,8 +41,9 @@ impl Error {
         self
     }
 
-    pub fn message(&mut self, m: String) -> &mut Self {
-        self.message = m;
+    // Accept any type convertible to String instead of requiring String
+    pub fn message(&mut self, m: impl Into<String>) -> &mut Self {
+        self.message = m.into();
         self
     }
 }
@@ -47,8 +52,9 @@ impl Error {
 pub struct Server(Option<SocketAddr>);
 
 impl Server {
-    pub fn bind(&mut self, ip: IpAddr, port: u16) {
-        self.0 = Some(SocketAddr::new(ip, port))
+    // Accept anything that can be resolved to a SocketAddr: "ip:port", (IpAddr, u16), etc.
+    pub fn bind(&mut self, addr: impl ToSocketAddrs) {
+        self.0 = addr.to_socket_addrs().ok().and_then(|mut a| a.next());
     }
 }
 
@@ -65,10 +71,12 @@ mod server_spec {
         fn sets_provided_address_to_server() {
             let mut server = Server::default();
 
-            server.bind(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+            // (IpAddr, u16) tuple — ToSocketAddrs
+            server.bind((IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080));
             assert_eq!(format!("{}", server.0.unwrap()), "127.0.0.1:8080");
 
-            server.bind("::1".parse().unwrap(), 9911);
+            // string slice — ToSocketAddrs
+            server.bind("[::1]:9911");
             assert_eq!(format!("{}", server.0.unwrap()), "[::1]:9911");
         }
     }
