@@ -1,5 +1,6 @@
 use std::{
     borrow::{Borrow, BorrowMut},
+    hash::Hash,
     num::NonZeroU64,
 };
 
@@ -14,7 +15,7 @@ pub trait Aggregate: Default {
     /// Note: This should effectively be a constant value, and should never change.
     fn aggregate_type() -> &'static str;
 
-    /// Consumes the event, applying its effects to the aggregate.
+    /// Consumes the event, applying its effects to the aggregate
     fn apply<E>(&mut self, event: E)
     where
         E: AggregateEvent<Self>,
@@ -24,10 +25,7 @@ pub trait Aggregate: Default {
 }
 
 /// An identifier for an aggregate.
-pub trait AggregateId<A>
-where
-    A: Aggregate,
-{
+pub trait AggregateId<A> {
     /// Gets the stringified aggregate identifier.
     fn as_str(&self) -> &str;
 }
@@ -43,7 +41,6 @@ pub trait AggregateEvent<A: Aggregate>: Event {
     /// Consumes the event, applying its effects to the aggregate.
     fn apply_to(self, aggregate: &mut A);
 }
-
 /// Represents an event sequence number, starting at 1
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EventNumber(NonZeroU64);
@@ -52,9 +49,9 @@ impl EventNumber {
     /// The minimum [EventNumber].
     #[allow(unsafe_code)]
     pub const MIN_VALUE: EventNumber =
-        // One is absolutely non-zero, and this is required for this to be
-        // usable in a `const` context.
-        EventNumber(unsafe { NonZeroU64::new_unchecked(1) });
+    // One is absolutely non-zero, and this is required for this to be
+    // usable in a `const` context.
+    EventNumber(unsafe { NonZeroU64::new_unchecked(1) });
 
     /// Increments the event number to the next value.
     #[inline]
@@ -63,7 +60,7 @@ impl EventNumber {
     }
 }
 
-/// An aggregate version.
+// An aggregate version.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Version {
     /// The version of an aggregate that has not had any events applied to it.
@@ -91,7 +88,7 @@ impl Version {
             .map(Version::Number)
             .unwrap_or(Version::Initial)
     }
-
+    
     /// Increments the version number to the next in sequence.
     #[inline]
     pub fn incr(&mut self) {
@@ -102,21 +99,59 @@ impl Version {
     }
 }
 
-/// An aggregate that has been loaded from a source, which keeps track of the version of its last snapshot and the current version of the aggregate.
-#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq)]
-pub struct HydratedAggregate<A>
-where
-    A: Aggregate,
-{
+// No `A: Aggregate` bound on the struct — bounds only on impls.
+pub struct HydratedAggregate<A> {
     version: Version,
     snapshot_version: Option<Version>,
     state: A,
 }
 
-impl<A> HydratedAggregate<A>
-where
-    A: Aggregate,
-{
+// Manual impls to avoid unnecessary bounds from #[derive].
+impl<A: Clone> Clone for HydratedAggregate<A> {
+    fn clone(&self) -> Self {
+        Self {
+            version: self.version,
+            snapshot_version: self.snapshot_version,
+            state: self.state.clone(),
+        }
+    }
+}
+impl<A: Copy> Copy for HydratedAggregate<A> {}
+impl<A: std::fmt::Debug> std::fmt::Debug for HydratedAggregate<A> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HydratedAggregate")
+            .field("version", &self.version)
+            .field("snapshot_version", &self.snapshot_version)
+            .field("state", &self.state)
+            .finish()
+    }
+}
+impl<A: Default> Default for HydratedAggregate<A> {
+    fn default() -> Self {
+        Self {
+            version: Version::default(),
+            snapshot_version: None,
+            state: A::default(),
+        }
+    }
+}
+impl<A: Hash> Hash for HydratedAggregate<A> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.version.hash(state);
+        self.snapshot_version.hash(state);
+        self.state.hash(state);
+    }
+}
+impl<A: PartialEq> PartialEq for HydratedAggregate<A> {
+    fn eq(&self, other: &Self) -> bool {
+        self.version == other.version
+            && self.snapshot_version == other.snapshot_version
+            && self.state == other.state
+    }
+}
+impl<A: Eq> Eq for HydratedAggregate<A> {}
+
+impl<A: Aggregate> HydratedAggregate<A> {
     /// The current version of the aggregate.
     pub fn version(&self) -> Version {
         self.version
@@ -151,38 +186,66 @@ where
     }
 }
 
-impl<A> AsRef<A> for HydratedAggregate<A>
-where
-    A: Aggregate,
-{
+impl<A> AsRef<A> for HydratedAggregate<A> {
     fn as_ref(&self) -> &A {
         &self.state
     }
 }
 
-impl<A> Borrow<A> for HydratedAggregate<A>
-where
-    A: Aggregate,
-{
+impl<A> Borrow<A> for HydratedAggregate<A> {
     fn borrow(&self) -> &A {
         &self.state
     }
 }
 
 /// An identified, specific instance of a hydrated aggregate.
-#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq)]
-pub struct Entity<I, A>
-where
-    A: Aggregate,
-    I: AggregateId<A>,
-{
+// No bounds on the struct itself.
+pub struct Entity<I, A> {
     id: I,
     aggregate: HydratedAggregate<A>,
 }
 
-impl<I, A> Entity<I, A>
+// Manual impls to avoid unnecessary bounds from #[derive].
+impl<I: Clone, A: Clone> Clone for Entity<I, A> {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id.clone(),
+            aggregate: self.aggregate.clone(),
+        }
+    }
+}
+impl<I: Copy, A: Copy> Copy for Entity<I, A> {}
+impl<I: std::fmt::Debug, A: std::fmt::Debug> std::fmt::Debug for Entity<I, A> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Entity")
+            .field("id", &self.id)
+            .field("aggregate", &self.aggregate)
+            .finish()
+    }
+}
+impl<I: Default, A: Default> Default for Entity<I, A> {
+    fn default() -> Self {
+        Self {
+            id: I::default(),
+            aggregate: HydratedAggregate::default(),
+        }
+    }
+}
+impl<I: std::hash::Hash, A: std::hash::Hash> std::hash::Hash for Entity<I, A> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self.aggregate.hash(state);
+    }
+}
+impl<I: PartialEq, A: PartialEq> PartialEq for Entity<I, A> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.aggregate == other.aggregate
+    }
+}
+impl<I: Eq, A: Eq> Eq for Entity<I, A> {}
+
+impl<I, A: Aggregate> Entity<I, A>
 where
-    A: Aggregate,
     I: AggregateId<A>,
 {
     /// Creates a new entity from an identifier and an associated hydrated aggregate.
@@ -206,61 +269,37 @@ where
     }
 }
 
-impl<I, A> From<Entity<I, A>> for HydratedAggregate<A>
-where
-    A: Aggregate,
-    I: AggregateId<A>,
-{
+impl<I, A> From<Entity<I, A>> for HydratedAggregate<A> {
     fn from(entity: Entity<I, A>) -> Self {
         entity.aggregate
     }
 }
 
-impl<I, A> AsRef<HydratedAggregate<A>> for Entity<I, A>
-where
-    A: Aggregate,
-    I: AggregateId<A>,
-{
+impl<I, A> AsRef<HydratedAggregate<A>> for Entity<I, A> {
     fn as_ref(&self) -> &HydratedAggregate<A> {
         &self.aggregate
     }
 }
 
-impl<I, A> AsMut<HydratedAggregate<A>> for Entity<I, A>
-where
-    A: Aggregate,
-    I: AggregateId<A>,
-{
+impl<I, A> AsMut<HydratedAggregate<A>> for Entity<I, A> {
     fn as_mut(&mut self) -> &mut HydratedAggregate<A> {
         &mut self.aggregate
     }
 }
 
-impl<I, A> Borrow<HydratedAggregate<A>> for Entity<I, A>
-where
-    A: Aggregate,
-    I: AggregateId<A>,
-{
+impl<I, A> Borrow<HydratedAggregate<A>> for Entity<I, A> {
     fn borrow(&self) -> &HydratedAggregate<A> {
         &self.aggregate
     }
 }
 
-impl<I, A> Borrow<A> for Entity<I, A>
-where
-    A: Aggregate,
-    I: AggregateId<A>,
-{
+impl<I, A> Borrow<A> for Entity<I, A> {
     fn borrow(&self) -> &A {
         self.aggregate.borrow()
     }
 }
 
-impl<I, A> BorrowMut<HydratedAggregate<A>> for Entity<I, A>
-where
-    A: Aggregate,
-    I: AggregateId<A>,
-{
+impl<I, A> BorrowMut<HydratedAggregate<A>> for Entity<I, A> {
     fn borrow_mut(&mut self) -> &mut HydratedAggregate<A> {
         &mut self.aggregate
     }
