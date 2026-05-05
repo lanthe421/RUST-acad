@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+use url::{Url};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -29,10 +31,10 @@ pub struct PrivateTariff {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Stream {
-    pub user_id: String,
+    pub user_id: Uuid,
     pub is_private: bool,
     pub settings: u64,
-    pub shard_url: String,
+    pub shard_url: Url,
     pub public_tariff: PublicTariff,
     pub private_tariff: PrivateTariff,
 }
@@ -88,10 +90,10 @@ mod tests {
     #[test]
     fn test_deserialize_stream_fields() {
         let req: Request = serde_json::from_str(JSON).unwrap();
-        assert_eq!(req.stream.user_id, "8d234120-0bda-49b2-b7e0-fbd3912f6cbf");
+        assert_eq!(req.stream.user_id, Uuid::parse_str("8d234120-0bda-49b2-b7e0-fbd3912f6cbf").unwrap());
         assert!(!req.stream.is_private);
         assert_eq!(req.stream.settings, 45345);
-        assert_eq!(req.stream.shard_url, "https://n3.example.com/sapi");
+        assert_eq!(req.stream.shard_url, Url::parse("https://n3.example.com/sapi").unwrap());
     }
 
     #[test]
