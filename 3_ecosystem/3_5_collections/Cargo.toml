@@ -6,3 +6,4 @@ publish = false
 
 [dependencies]
 im = "15.1.0"
+derive_more = {version = "2.1.1" , features = ["from", "into"]}
