@@ -38,9 +38,24 @@ Prove your implementation correctness with additional tests. For tests reproduci
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - How does system clock and monotonic clock differ? What are use-cases for both?
+
+System clock tracks wall time (can jump forward/backward due to NTP sync or DST). Use it for timestamps and dates.
+Monotonic clock only moves forward and measures elapsed time. Use it for benchmarks and timeouts.
+
 - Why is system clock is not reliable for measuring duration? What causes its drift?
+
+It can be adjusted by NTP, leap seconds, or manual changes mid-measurement, 
+making the elapsed time negative or wildly off. Monotonic clock is immune to these adjustments
+
 - What is the main practical difference between [`chrono`] and [`time`] crates?
+
+The main difference between them (aside from API, ergonomics, and support activity) 
+is that chronocrate parameterizes the time zone in types, whereas timecrate handles it at runtime.
+
 - When [`hifitime`] crate could be useful?
+
+Hifitime is needed when more precise time information is needed.
+
 
 
 
