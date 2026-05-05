@@ -35,18 +35,12 @@ impl User {
         }
 
         let years = now.year() - self.birthdate.year();
-        if years > 227 || years < 0 {
-            return 0;
-        }
-        let birthday_today = (now.month() as u8, now.day()) >= (self.birthdate.month() as u8, self.birthdate.day());
 
-        if birthday_today {
+        if now.ordinal() >= self.birthdate.ordinal() {
             years as u8
         } else {
             (years - 1) as u8
         }
-
-
     }
 
     /// Checks if [`User`] is 18 years old at the moment.
