@@ -3,3 +3,9 @@ name = "step_3_1"
 version = "0.1.0"
 edition = "2024"
 publish = false
+
+[dependencies]
+mockall = "0.14.0"
+
+[dev-dependencies]
+proptest = "1"

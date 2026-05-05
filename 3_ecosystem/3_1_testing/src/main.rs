@@ -15,15 +15,42 @@ fn main() {
 
         println!("You guessed: {}", guess);
 
-        match guess.cmp(&secret_number) {
-            Ordering::Less => println!("Too small!"),
-            Ordering::Greater => println!("Too big!"),
-            Ordering::Equal => {
+        match check_guess(guess, secret_number) {
+            GuessResult::TooSmall => println!("Too small!"),
+            GuessResult::TooBig => println!("Too big!"),
+            GuessResult::Correct => {
                 println!("You win!");
                 break;
             }
         }
     }
+}
+
+/// Result of comparing a guess to the secret number.
+#[derive(Debug, PartialEq)]
+pub enum GuessResult {
+    TooSmall,
+    TooBig,
+    Correct,
+}
+
+/// Compare a guess against the secret number.
+pub fn check_guess(guess: u32, secret: u32) -> GuessResult {
+    match guess.cmp(&secret) {
+        Ordering::Less => GuessResult::TooSmall,
+        Ordering::Greater => GuessResult::TooBig,
+        Ordering::Equal => GuessResult::Correct,
+    }
+}
+
+/// Parse a secret number from a string slice.
+pub fn parse_secret(s: &str) -> Option<u32> {
+    s.trim().parse().ok()
+}
+
+/// Parse a guess from a string slice.
+pub fn parse_guess(s: &str) -> Option<u32> {
+    s.trim().parse().ok()
 }
 
 fn get_secret_number() -> u32 {
@@ -32,11 +59,7 @@ fn get_secret_number() -> u32 {
         .take(1)
         .last()
         .expect("No secret number is specified");
-    secret_number
-        .trim()
-        .parse()
-        .ok()
-        .expect("Secret number is not a number")
+    parse_secret(&secret_number).expect("Secret number is not a number")
 }
 
 fn get_guess_number() -> Option<u32> {
@@ -44,5 +67,274 @@ fn get_guess_number() -> Option<u32> {
     io::stdin()
         .read_line(&mut guess)
         .expect("Failed to read line");
-    guess.trim().parse().ok()
+    parse_guess(&guess)
+}
+
+#[cfg(test)]
+mod guess_result_spec {
+    use super::*;
+
+    #[test]
+    fn returns_too_small_when_guess_is_lower() {
+        assert_eq!(check_guess(3, 10), GuessResult::TooSmall);
+    }
+
+    #[test]
+    fn returns_too_big_when_guess_is_higher() {
+        assert_eq!(check_guess(15, 10), GuessResult::TooBig);
+    }
+
+    #[test]
+    fn returns_correct_when_guess_matches_secret() {
+        assert_eq!(check_guess(10, 10), GuessResult::Correct);
+    }
+
+    #[test]
+    fn returns_correct_for_zero() {
+        assert_eq!(check_guess(0, 0), GuessResult::Correct);
+    }
+
+    #[test]
+    fn returns_too_small_for_zero_vs_one() {
+        assert_eq!(check_guess(0, 1), GuessResult::TooSmall);
+    }
+
+    #[test]
+    fn returns_too_big_for_max_u32() {
+        assert_eq!(check_guess(u32::MAX, u32::MAX - 1), GuessResult::TooBig);
+    }
+}
+
+#[cfg(test)]
+mod parse_secret_spec {
+    use super::*;
+
+    #[test]
+    fn parses_valid_number() {
+        assert_eq!(parse_secret("42"), Some(42));
+    }
+
+    #[test]
+    fn parses_number_with_whitespace() {
+        assert_eq!(parse_secret("  7  "), Some(7));
+    }
+
+    #[test]
+    fn returns_none_for_empty_string() {
+        assert_eq!(parse_secret(""), None);
+    }
+
+    #[test]
+    fn returns_none_for_non_numeric_input() {
+        assert_eq!(parse_secret("abc"), None);
+    }
+
+    #[test]
+    fn returns_none_for_negative_number() {
+        assert_eq!(parse_secret("-5"), None);
+    }
+
+    #[test]
+    fn returns_none_for_float() {
+        assert_eq!(parse_secret("3.14"), None);
+    }
+
+    #[test]
+    fn parses_zero() {
+        assert_eq!(parse_secret("0"), Some(0));
+    }
+
+    #[test]
+    fn parses_max_u32() {
+        assert_eq!(parse_secret("4294967295"), Some(u32::MAX));
+    }
+
+    #[test]
+    fn returns_none_for_overflow() {
+        assert_eq!(parse_secret("4294967296"), None);
+    }
+}
+
+#[cfg(test)]
+mod parse_guess_spec {
+    use super::*;
+
+    #[test]
+    fn parses_valid_guess() {
+        assert_eq!(parse_guess("100"), Some(100));
+    }
+
+    #[test]
+    fn parses_guess_with_newline() {
+        assert_eq!(parse_guess("55\n"), Some(55));
+    }
+
+    #[test]
+    fn returns_none_for_empty_input() {
+        assert_eq!(parse_guess(""), None);
+    }
+
+    #[test]
+    fn returns_none_for_letters() {
+        assert_eq!(parse_guess("hello"), None);
+    }
+
+    #[test]
+    fn returns_none_for_whitespace_only() {
+        assert_eq!(parse_guess("   "), None);
+    }
+}
+
+#[cfg(test)]
+mod game_flow_spec {
+    use super::*;
+
+    #[test]
+    fn correct_guess_on_first_try() {
+        let secret = 42;
+        let guesses = [42];
+        let mut result = GuessResult::TooSmall;
+        for g in guesses {
+            result = check_guess(g, secret);
+            if result == GuessResult::Correct {
+                break;
+            }
+        }
+        assert_eq!(result, GuessResult::Correct);
+    }
+
+    #[test]
+    fn binary_search_converges_to_correct() {
+        let secret = 73u32;
+        let mut lo = 0u32;
+        let mut hi = 100u32;
+        let mut found = false;
+
+        while lo <= hi {
+            let mid = lo + (hi - lo) / 2;
+            match check_guess(mid, secret) {
+                GuessResult::Correct => {
+                    found = true;
+                    break;
+                }
+                GuessResult::TooSmall => lo = mid + 1,
+                GuessResult::TooBig => hi = mid - 1,
+            }
+        }
+
+        assert!(found);
+    }
+
+    #[test]
+    fn invalid_guesses_are_skipped() {
+        let inputs = ["abc", "3.14", "", "  "];
+        for input in inputs {
+            assert_eq!(parse_guess(input), None);
+        }
+    }
+}
+
+// ============================================================
+// MOCKING EXAMPLE
+// ============================================================
+//
+// The game needs a random number source. Instead of hardcoding
+// `rand::random()` everywhere, we define a trait and mock it.
+// This lets tests control exactly what "random" number is returned.
+
+use mockall::automock;
+
+#[automock]
+pub trait NumberSource {
+    fn next_number(&self) -> u32;
+}
+
+/// Game logic that depends on an abstract number source.
+pub fn run_single_round(source: &dyn NumberSource, guess: u32) -> GuessResult {
+    let secret = source.next_number();
+    check_guess(guess, secret)
+}
+
+#[cfg(test)]
+mod mocking_spec {
+    use super::*;
+    use mockall::predicate::*;
+
+    #[test]
+    fn mock_returns_controlled_secret() {
+        let mut mock = MockNumberSource::new();
+        // Tell the mock: when next_number() is called once, return 42
+        mock.expect_next_number()
+            .times(1)
+            .returning(|| 42);
+
+        assert_eq!(run_single_round(&mock, 42), GuessResult::Correct);
+    }
+
+    #[test]
+    fn mock_detects_too_small_guess() {
+        let mut mock = MockNumberSource::new();
+        mock.expect_next_number().returning(|| 100);
+
+        assert_eq!(run_single_round(&mock, 50), GuessResult::TooSmall);
+    }
+
+    #[test]
+    fn mock_detects_too_big_guess() {
+        let mut mock = MockNumberSource::new();
+        mock.expect_next_number().returning(|| 10);
+
+        assert_eq!(run_single_round(&mock, 99), GuessResult::TooBig);
+    }
+}
+
+// ============================================================
+// PROPERTY TESTING EXAMPLE
+// ============================================================
+//
+// Instead of picking specific numbers, proptest generates hundreds
+// of random (a, b) pairs and checks that our properties always hold.
+
+#[cfg(test)]
+mod property_spec {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        // Property: if guess < secret, result is always TooSmall
+        #[test]
+        fn guess_less_than_secret_is_always_too_small(
+            (guess, secret) in (0u32..u32::MAX).prop_flat_map(|g| (Just(g), (g + 1)..=u32::MAX))
+        ) {
+            prop_assert_eq!(check_guess(guess, secret), GuessResult::TooSmall);
+        }
+
+        // Property: if guess > secret, result is always TooBig
+        #[test]
+        fn guess_greater_than_secret_is_always_too_big(
+            (secret, guess) in (0u32..u32::MAX).prop_flat_map(|s| (Just(s), (s + 1)..=u32::MAX))
+        ) {
+            prop_assert_eq!(check_guess(guess, secret), GuessResult::TooBig);
+        }
+
+        // Property: any number compared to itself is always Correct
+        #[test]
+        fn any_number_equals_itself(n in 0u32..=u32::MAX) {
+            prop_assert_eq!(check_guess(n, n), GuessResult::Correct);
+        }
+
+        // Property: parse_secret(s) == parse_guess(s) for all strings
+        // Both functions must behave identically since they do the same thing
+        #[test]
+        fn parse_secret_and_parse_guess_are_consistent(s in ".*") {
+            prop_assert_eq!(parse_secret(&s), parse_guess(&s));
+        }
+
+        // Property: valid u32 values always parse successfully
+        #[test]
+        fn valid_u32_always_parses(n in 0u32..=u32::MAX) {
+            let s = n.to_string();
+            prop_assert_eq!(parse_secret(&s), Some(n));
+        }
+    }
 }
