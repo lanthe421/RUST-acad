@@ -95,8 +95,25 @@ Prove your implementation correctness with tests.
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is a collection? What is an iterator? How do they differ? How are they used? Which limitations does each one have?
+
+A collection is a data structure that owns and stores a set of elements in memory (`Vec`, `HashMap`, `BTreeSet`, etc.). An iterator is a lazy object that yields elements one at a time via `next()` returning `Option<Item>`.
+
+The key difference: a collection holds all data at once, while an iterator produces elements on demand without necessarily storing them. Iterators compose well — you can chain adapters (`map`, `filter`, `flat_map`) with zero intermediate allocations.
+
+Limitations of collections: memory proportional to size, resizing can be costly. Limitations of iterators: typically single-pass (no random access, can't go back without ``Clone``/``Peekable``), and they do nothing until consumed.
+
 - What are immutable collections? How do they work? Why shouldn't we use them all the time? When does it make sense to use them?
+
+Immutable (persistent) collections return a new version of the collection on every "mutation", while maximally reusing the structure of the old one via structural sharing. For example, `im::HashMap` uses a HAMT — on insert, only the path from root to the changed node is copied; everything else is shared.
+
+You shouldn't use them everywhere because they're slower than standard collections — tree indirection makes every operation more expensive compared to contiguous memory. They make sense when you need multiple versions of state simultaneously (undo/redo, snapshots, functional-style pipelines), or when multiple threads/components need their own "copy" without cloning all the data.
+
 - What are concurrent collections? How do they work? Why are they better than explicit synchronization on a normal collection?
+
+Concurrent collections (`crossbeam`, `flurry`, `chashmap`) let multiple threads operate on a shared collection without explicit `Mutex`/`RwLock`. Internally they use lock-free algorithms built on atomic CAS (compare-and-swap) operations and techniques like epoch-based memory reclamation.
+
+The advantage over `Arc<RwLock<HashMap>>`: explicit synchronization locks the entire collection for every operation, creating heavy contention under load. Concurrent collections use fine-grained or fully lock-free synchronization — different threads can work on different segments simultaneously, giving much better scalability.
+
 
 
 
