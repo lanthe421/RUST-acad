@@ -12,12 +12,14 @@ fn select_rand_val<T>(slice: &[T]) -> Option<&T> {
 
 fn generate_password(length: usize, symbols_set: &str) -> String {
     let mut rng = rng();
-    let chars: Vec<char> = symbols_set.trim().chars().collect();
-    if chars.is_empty() {
+    let bytes = symbols_set.trim().as_bytes();
+    if bytes.is_empty() {
         return String::new();
     }
 
-    (0..length).map(|_| chars.choose(&mut rng).unwrap()).collect()
+    (0..length)
+        .map(|_| *bytes.choose(&mut rng).unwrap() as char)
+        .collect()
 }
 
 fn new_access_token() -> String {
