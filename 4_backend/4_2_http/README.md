@@ -105,9 +105,24 @@ Rework [the task from the previous step](../4_1_db/README.md#task) in a [client-
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is HTTP? What does HTTP/2 imply? What does HTTP/3 imply?
+
+  HTTP is a request/response protocol over TCP for transferring hypertext. HTTP/2 adds multiplexing of multiple requests over a single connection, header compression (HPACK), and server push. HTTP/3 replaces TCP with QUIC (over UDP), eliminating transport-level head-of-line blocking and reducing connection setup latency.
+
 - How do work-stealing and thread-per-core paradigms affect programming a web server in practice? Which one is better and when? When does this question (choosing) become meaningful, in practice?
+
+  Work-stealing (tokio, async-std): tasks migrate between threads — requires `Send` synchronization, but gives better CPU utilization under uneven load. Thread-per-core (actix-rt, glommio): each thread handles only its own tasks — no `Send` required, lower synchronization overhead, but threads may idle under imbalanced load. The choice becomes meaningful at high RPS when synchronization cost shows up in profiling.
+
 - What are common crates for making HTTP requests in [Rust]? Which trade-offs do they have?
+
+  - `reqwest` — most popular, async, built on hyper/tokio; heavy dependency tree.
+  - `ureq` — synchronous, minimal, no async runtime needed; great for CLI tools and scripts.
+  - `isahc` — runtime-agnostic wrapper around libcurl, practical API; depends on a system library.
+  - `awc` — actix-web's client, supports WebSocket out of the box; tied to actix-rt.
+  - `surf` — async, supports multiple backends (hyper, curl, WASM).
+
 - What is WebSocket? How is it used and when? How does it work, in a nutshell?
+
+  WebSocket is a full-duplex communication protocol over a single TCP connection. Used where real-time bidirectional exchange is needed: chats, live dashboards, games. It works by the client sending an HTTP `Upgrade` request; the server responds with `101 Switching Protocols`, after which both sides exchange lightweight frames without HTTP header overhead.
 
 
 
