@@ -1,6 +1,10 @@
 use clap::Parser;
 use config::{Config, Environment, File};
 use serde::{Deserialize, Serialize};
+use smart_default::SmartDefault;
+use log::LevelFilter;
+use url::Url;
+use std::net::IpAddr;
 
 /// Prints its configuration to STDOUT.
 #[derive(Parser, Debug)]
@@ -15,75 +19,50 @@ struct Cli {
     conf: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(SmartDefault, Debug, Deserialize, Serialize)]
 #[serde(default)]
 struct ModeConfig {
+    #[default = false]
     debug: bool,
 }
 
-impl Default for ModeConfig {
-    fn default() -> Self {
-        Self { debug: false }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(SmartDefault, Debug, Deserialize, Serialize)]
 #[serde(default)]
 struct ServerConfig {
-    external_url: String,
+    #[default(Url::parse("http://127.0.0.1").unwrap())]
+    external_url: Url,
+    #[default = 8081]
     http_port: u16,
+    #[default = 8082]
     grpc_port: u16,
+    #[default = 10025]
     healthz_port: u16,
+    #[default = 9199]
     metrics_port: u16,
 }
 
-impl Default for ServerConfig {
-    fn default() -> Self {
-        Self {
-            external_url: "http://127.0.0.1".into(),
-            http_port: 8081,
-            grpc_port: 8082,
-            healthz_port: 10025,
-            metrics_port: 9199,
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(SmartDefault, Debug, Deserialize, Serialize)]
 #[serde(default)]
 struct DbMysqlConnections {
+    #[default = 30]
     max_idle: u32,
+    #[default = 30]
     max_open: u32,
 }
 
-impl Default for DbMysqlConnections {
-    fn default() -> Self {
-        Self { max_idle: 30, max_open: 30 }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(SmartDefault, Debug, Deserialize, Serialize)]
 #[serde(default)]
 struct DbMysqlConfig {
-    host: String,
+    #[default("127.0.0.1".parse().unwrap())]
+    host: IpAddr,
+    #[default = 3306]
     port: u16,
+    #[default = "default"]
     dating: String,
+    #[default = "root"]
     user: String,
     pass: String,
     connections: DbMysqlConnections,
-}
-
-impl Default for DbMysqlConfig {
-    fn default() -> Self {
-        Self {
-            host: "127.0.0.1".into(),
-            port: 3306,
-            dating: "default".into(),
-            user: "root".into(),
-            pass: String::new(),
-            connections: DbMysqlConnections::default(),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -92,16 +71,11 @@ struct DbConfig {
     mysql: DbMysqlConfig,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(SmartDefault, Debug, Deserialize, Serialize)]
 #[serde(default)]
 struct LogAppConfig {
-    level: String,
-}
-
-impl Default for LogAppConfig {
-    fn default() -> Self {
-        Self { level: "info".into() }
-    }
+    #[default(LevelFilter::Info)]
+    level: LevelFilter,
 }
 
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -110,22 +84,19 @@ struct LogConfig {
     app: LogAppConfig,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(SmartDefault, Debug, Deserialize, Serialize)]
 #[serde(default)]
 struct WatchdogConfig {
-    period: String,
-    limit: u32,
-    lock_timeout: String,
-}
+    #[serde(with = "humantime_serde")]
+    #[default(std::time::Duration::from_secs(5))]
+    period: std::time::Duration,
 
-impl Default for WatchdogConfig {
-    fn default() -> Self {
-        Self {
-            period: "5s".into(),
-            limit: 10,
-            lock_timeout: "4s".into(),
-        }
-    }
+    #[default = 10]
+    limit: u32,
+
+    #[serde(with = "humantime_serde")]
+    #[default(std::time::Duration::from_secs(4))]
+    lock_timeout: std::time::Duration,
 }
 
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -150,22 +121,26 @@ fn main() {
     let defaults = Config::try_from(&AppConfig::default())
         .expect("Failed to serialize defaults");
 
-    let mut app_config: AppConfig = Config::builder()
+    let mut builder = Config::builder()
         .add_source(defaults)
         .add_source(File::with_name(&cli.conf).required(false))
         .add_source(
             Environment::with_prefix("CONF")
                 .separator("__")
                 .try_parsing(true),
-        )
+        );
+
+    if cli.debug {
+        builder = builder.set_override("mode.debug", true)
+            .expect("Failed to set debug override");
+    }
+
+    let app_config: AppConfig = builder
         .build()
         .expect("Failed to build configuration")
         .try_deserialize()
         .expect("Failed to deserialize configuration");
 
-    if cli.debug {
-        app_config.mode.debug = true;
-    }
 
     println!(
         "{}",
