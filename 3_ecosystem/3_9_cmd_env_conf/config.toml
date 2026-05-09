@@ -50,7 +50,7 @@
 # Port that MySQL database server is listening connections on.
 #
 # Default:
-#   port = 3306
+  port = 3333
 
 # Name of database to use on MySQL server.
 #

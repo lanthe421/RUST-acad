@@ -99,8 +99,17 @@ OPTIONS:
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What are the benefits of having strongly-type configuration?
+
+The compiler catches type mismatches — you can't accidentally put a string into `http_port: u16`. Typos in field names are caught at compile time, not at runtime. You get IDE autocomplete and no manual string parsing/validation — `serde` handles it all.
+
 - Why environment variables are useful for configuring an application? What is the main use-case for them?
+
+The main use-case is deploying to different environments (dev/staging/prod) without changing code or config files. In containers (Docker, Kubernetes) env vars are the standard way to inject secrets and runtime parameters. This is the core of the 12-factor app principle: config is separated from code, secrets never end up in the repository.
+
 - How is [`config`] crate really useful? Why should we it and cannot just deserialize a file into structs via [`serde`]?
+
+`serde` can only deserialize a single source. `config` solves the problem of merging multiple sources with priorities — code defaults, TOML file, env vars — all merged into one struct automatically. On top of that it supports live-reload, a path syntax for accessing nested values, and a unified interface across formats (TOML, YAML, JSON, INI...).
+
 
 
 
