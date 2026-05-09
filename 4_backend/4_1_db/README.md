@@ -138,10 +138,24 @@ Consider to ensure [data consistency][202] in your database as much as possible.
 
 After completing everything above, you should be able to answer (and understand why) the following questions:
 - What is connection pool pattern? How does it work? Which problems does it solve?
+
+  A connection pool is a cache of pre-established database connections that are reused across requests. Instead of opening and closing a connection on every query (which involves TCP handshake, authentication, and memory allocation), the application borrows a connection from the pool, uses it, and returns it. The pool maintains a fixed number of connections (e.g. `max_connections(5)` in this project). It solves three problems: eliminates per-request connection overhead, limits the total number of connections to the DB (protecting it from overload), and provides a queue when all connections are busy rather than failing immediately.
+
 - What is ORM pattern? How does it differ from query building? What benefits do they give?
+
+  ORM (Object-Relational Mapping) maps database tables to language structs/classes and generates SQL automatically. You work with objects and methods (`user.save()`, `User::find(id)`) instead of writing SQL. Query building is a middle ground — you construct SQL programmatically using a DSL (`sea-query`, `diesel`'s query builder) but still think in terms of SQL structure. ORMs give faster development, less boilerplate, and built-in relationship handling. Query builders give more control over the generated SQL while still being type-safe. The tradeoff: ORMs can generate inefficient queries and make complex queries hard to express; raw SQL or query builders are more explicit.
+
 - Why writing raw SQL queries could be meaningful? Which are use-cases for it and when is it preferred over ORMs?
-- What are migrations? Why should we use them? How do they work? 
-- Which kinds of migrations do exist? What are their advantages and disadvantages? When and which kind is preferred?  
+
+  Raw SQL is preferred when: (1) query complexity exceeds what an ORM can express cleanly — window functions, CTEs, complex joins; (2) performance is critical and you need full control over the query plan; (3) you need DB-specific features like `ON CONFLICT DO NOTHING`, `JSONB` operators, or `FOR UPDATE`; (4) the overhead of an ORM abstraction isn't justified for a small focused tool. `sqlx` in this project uses raw SQL with compile-time checking, which gives the best of both worlds — type safety without the ORM abstraction cost.
+
+- What are migrations? Why should we use them? How do they work?
+
+  Migrations are versioned SQL scripts that describe incremental changes to the database schema. Each migration has a unique version (e.g. `0001_initial.sql`) and is applied exactly once. The migration tool tracks applied migrations in a metadata table (`_sqlx_migrations` in sqlx). On startup, it compares the list of migration files against the table and runs only the new ones. This makes schema changes reproducible, auditable, and safe to apply across all environments (dev, staging, prod) in the correct order.
+
+- Which kinds of migrations do exist? What are their advantages and disadvantages? When and which kind is preferred?
+
+  Two main kinds: **versioned** (sequential numbered files, applied once in order — used in this project) and **repeatable** (re-applied whenever their content changes, useful for views or stored procedures). Within versioned migrations there are **up-only** (simpler, just apply changes) and **up/down** pairs (each migration has a rollback script). Up/down gives the ability to revert a migration but doubles the maintenance burden and rollbacks are often unsafe on production data anyway. Up-only is preferred for most projects. Versioned migrations are the standard choice for schema changes; repeatable migrations suit objects that are fully redefined each time.  
 
 
 
