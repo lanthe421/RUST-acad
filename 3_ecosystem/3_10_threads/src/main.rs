@@ -1,48 +1,68 @@
 use crossbeam_channel::bounded;
 use rand::RngExt;
 use rayon::prelude::*;
+use std::sync::Arc;
 use std::thread;
 
 const SIZE: usize = 4096;
+const MATRIX_SIZE: usize = SIZE * SIZE;
 
-type Matrix = Vec<u8>;
-
-fn generate_matrix() -> Matrix {
-    let mut matrix = vec![0u8; SIZE * SIZE];
-    rand::rng().fill(matrix.as_mut_slice());
-    matrix
+#[derive(Clone)]
+struct Matrix {
+    data: Arc<Vec<u8>>,
 }
 
-fn sum_matrix(matrix: &Matrix) -> u64 {
-    matrix.par_iter().map(|&x| x as u64).sum()
+impl Matrix {
+    fn generate_matrix() -> Self {
+        let mut data = vec![0u8; MATRIX_SIZE];
+        rand::rng().fill(data.as_mut_slice());
+        Self { 
+            data: Arc::new(data)
+        }
+    }
+
+    fn sum_matrix(&self) -> u64 {
+        self.data
+            .par_iter()
+            .map(|&x| x as u64)
+            .sum()
+    }
 }
+
+
 
 fn main() {
     let (tx, rx) = bounded::<Matrix>(1);
 
-    let producer = thread::spawn(move || {
-        loop {
-            let matrix = generate_matrix();
-            if tx.send(matrix).is_err() {
-                break;
+    let producer = thread::Builder::new()
+        .name("producer".to_string())
+        .spawn(move || {
+            loop {
+                let matrix = Matrix::generate_matrix();
+                if tx.send(matrix).is_err() {
+                    break;
+                }
             }
-        }
-    });
+        })
+        .expect("Failed to spawn producer thread");
 
-    let consumers: Vec<_> = (0..6)
+    let consumers: Vec<_> = (0..2)
         .map(|id| {
             let rx = rx.clone();
-            thread::spawn(move || {
-                while let Ok(matrix) = rx.recv() {
-                    let sum = sum_matrix(&matrix);
-                    println!("consumer {}: sum is {}", id, sum);
-                }
-            })
+            thread::Builder::new()
+                .name(format!("consumer-{}", id))
+                .spawn(move || {
+                    while let Ok(matrix) = rx.recv() {
+                        let sum = matrix.sum_matrix();
+                        println!("consumer {}: sum is {}", id, sum);
+                    }
+                })
+                .unwrap_or_else(|_| panic!("Failed to spawn consumer thread {}", id))
         })
         .collect();
 
     producer.join().unwrap();
-    for c in consumers {
-        c.join().unwrap();
+    for (id, consumer) in consumers.into_iter().enumerate() {
+        consumer.join().unwrap_or_else(|_| panic!("Consumer {} panicked", id));
     }
 }
