@@ -1,10 +1,10 @@
 use clap::Parser;
 use config::{Config, Environment, File};
+use log::LevelFilter;
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
-use log::LevelFilter;
-use url::Url;
 use std::net::IpAddr;
+use url::Url;
 
 /// Prints its configuration to STDOUT.
 #[derive(Parser, Debug)]
@@ -118,8 +118,7 @@ struct AppConfig {
 fn main() {
     let cli = Cli::parse();
 
-    let defaults = Config::try_from(&AppConfig::default())
-        .expect("Failed to serialize defaults");
+    let defaults = Config::try_from(&AppConfig::default()).expect("Failed to serialize defaults");
 
     let mut builder = Config::builder()
         .add_source(defaults)
@@ -130,10 +129,9 @@ fn main() {
                 .try_parsing(true),
         );
 
-    if cli.debug {
-        builder = builder.set_override("mode.debug", true)
-            .expect("Failed to set debug override");
-    }
+    builder = builder
+        .set_override("mode.debug", cli.debug)
+        .expect("Failed to set debug override");
 
     let app_config: AppConfig = builder
         .build()
@@ -141,10 +139,8 @@ fn main() {
         .try_deserialize()
         .expect("Failed to deserialize configuration");
 
-
     println!(
         "{}",
-        serde_json::to_string_pretty(&app_config)
-            .unwrap_or_else(|_| format!("{app_config:#?}"))
+        serde_json::to_string_pretty(&app_config).unwrap_or_else(|_| format!("{app_config:#?}"))
     );
 }
