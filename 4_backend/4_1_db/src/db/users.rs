@@ -75,7 +75,7 @@ pub async fn list(pool: &PgPool) -> Result<()> {
         return Ok(());
     }
     for u in &users {
-        let roles = fetch_user_roles(pool, u.id).await?;
+        let roles = fetch_user_roles(pool, u.id.into()).await?;
         println!("[{}] {} <{}> (created: {}) - roles: [{}]",
             u.id, u.name, u.email, u.created_at.format("%Y-%m-%d %H:%M"), roles.join(", "));
     }
@@ -90,7 +90,7 @@ pub async fn get(pool: &PgPool, id: Uuid) -> Result<()> {
             .await?;
     match user {
         Some(u) => {
-            let roles = fetch_user_roles(pool, u.id).await?;
+            let roles = fetch_user_roles(pool, u.id.into()).await?;
             println!("[{}] {} <{}> (created: {}) - roles: [{}]",
                 u.id, u.name, u.email, u.created_at.format("%Y-%m-%d %H:%M"), roles.join(", "));
         }
