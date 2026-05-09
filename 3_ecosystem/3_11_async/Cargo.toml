@@ -1,0 +1,11 @@
+[package]
+name = "step_3_11"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+tokio = {version = "1.52.2", features = ["full"]}
+clap = {version = "4.6.1", features = ["derive"]}
+reqwest = "0.13.3"
+url = "2.5.8"

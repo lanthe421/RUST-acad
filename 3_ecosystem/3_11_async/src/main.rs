@@ -1,6 +1,5 @@
 use clap::Parser;
-use std::{fs, sync::Arc, time::Instant};
-use tokio::sync::Semaphore;
+use std::{path::PathBuf, time::Instant};
 
 /// Downloads web pages from a list of URLs concurrently.
 #[derive(Parser)]
@@ -10,7 +9,7 @@ struct Cli {
     max_threads: usize,
 
     /// File containing URLs (one per line)
-    file: String,
+    file: PathBuf,
 }
 
 // the number of cores on this computer
@@ -39,7 +38,7 @@ async fn download(client: reqwest::Client, url: String) {
             Err(e) => eprintln!("ERROR reading {url}: {e}"),
             Ok(body) => {
                 let filename = url_to_filename(&url);
-                match fs::write(&filename, &body) {
+                match tokio::fs::write(&filename, &body).await {
                     Ok(_) => println!("OK {url} -> {filename}"),
                     Err(e) => eprintln!("ERROR writing {filename}: {e}"),
                 }
@@ -48,15 +47,21 @@ async fn download(client: reqwest::Client, url: String) {
     }
 }
 
-#[tokio::main]
-async fn main() {
-    let num = num_cpus();
-    let now = Instant::now();
-    println!("{}", num);
+fn main() {
     let cli = Cli::parse();
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(cli.max_threads)
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(run(cli));
+}
+
+async fn run(cli: Cli) {
+    let now = Instant::now();
 
     let content = tokio::fs::read_to_string(&cli.file).await
-        .unwrap_or_else(|e| panic!("Cannot read '{}': {e}", cli.file));
+        .unwrap_or_else(|e| panic!("Cannot read '{}': {e}", cli.file.display()));
 
     let urls: Vec<String> = content
         .lines()
@@ -65,18 +70,14 @@ async fn main() {
         .map(String::from)
         .collect();
 
-    let semaphore = Arc::new(Semaphore::new(cli.max_threads));
     let client = reqwest::Client::new();
-
     let mut handles = Vec::with_capacity(urls.len());
 
     for url in urls {
-        let permit = Arc::clone(&semaphore).acquire_owned().await.unwrap();
         let client = client.clone();
         let handle = tokio::spawn(async move {
             let now = Instant::now();
             download(client, url).await;
-            drop(permit); // release slot when done
             println!("{:?}", now.elapsed());
         });
         handles.push(handle);
